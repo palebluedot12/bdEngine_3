@@ -1,189 +1,112 @@
 #include "pch.h"
 #include "GameApp.h"
 
-GameApp::GameApp()
+GameApp* GameApp::m_pInstance = nullptr;
+HWND GameApp::m_hWnd;
+
+LRESULT CALLBACK DefaultWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	return  GameApp::m_pInstance->WndProc(hWnd, message, wParam, lParam);
+}
+
+GameApp::GameApp(HINSTANCE hInstance)
+	:m_hInstance(hInstance), m_szWindowClass(L"DefaultWindowClass"), m_szTitle(L"Gradient Square"), m_ClientWidth(1024), m_ClientHeight(768)
+{
+	GameApp::m_pInstance = this;
+	m_wcex.hInstance = hInstance;
+	m_wcex.cbSize = sizeof(WNDCLASSEX);
+	m_wcex.style = CS_HREDRAW | CS_VREDRAW;
+	m_wcex.lpfnWndProc = DefaultWndProc;
+	m_wcex.cbClsExtra = 0;
+	m_wcex.cbWndExtra = 0;
+	m_wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	m_wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	m_wcex.lpszClassName = m_szWindowClass;
+}
+
+GameApp::~GameApp()
 {
 
 }
 
-BOOL GameApp::InitInstance(HINSTANCE hInstance, int nCmdShow)
+
+bool GameApp::Initialize(UINT Width, UINT Height)
 {
-	hInst = hInstance;
+	m_ClientWidth = Width;
+	m_ClientHeight = Height;
 
-	SIZE clientSize = { 1280, 720 };
-	RECT clientRect = { 0, 0, clientSize.cx, clientSize.cy };
-	AdjustWindowRect(&clientRect, WS_OVERLAPPEDWINDOW, FALSE);
+	// 등록
+	RegisterClassExW(&m_wcex);
 
-	hWnd = CreateWindow(L"Square's Dream", L"Square's Dream", WS_OVERLAPPEDWINDOW,
-		0, 0, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
-		nullptr, nullptr, hInstance, nullptr);
-	DWORD error = GetLastError();
+	// 원하는 크기가 조정되어 리턴
+	RECT rcClient = { 0, 0, (LONG)Width, (LONG)Height };
+	AdjustWindowRect(&rcClient, WS_OVERLAPPEDWINDOW, FALSE);
 
-	if (!hWnd)
+	//생성
+	m_hWnd = CreateWindowW(m_szWindowClass, m_szTitle, WS_OVERLAPPEDWINDOW,
+		100, 100,	// 시작 위치
+		rcClient.right - rcClient.left, rcClient.bottom - rcClient.top,
+		nullptr, nullptr, m_hInstance, nullptr);
+
+	if (!m_hWnd)
 	{
-		return FALSE;
+		return false;
 	}
 
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
+	// 윈도우 보이기
+	ShowWindow(m_hWnd, SW_SHOW);
+	UpdateWindow(m_hWnd);
 
-	return TRUE;
+	m_currentTime = m_previousTime = (float)GetTickCount64() / 1000.0f;
+	return true;
 }
 
+bool GameApp::Run()
+{
+	// PeekMessage 메세지가 있으면 true,없으면 false
+	while (TRUE)
+	{
+		if (PeekMessage(&m_msg, NULL, 0, 0, PM_REMOVE))
+		{
+			if (m_msg.message == WM_QUIT)
+				break;
+
+			//윈도우 메시지 처리 
+			TranslateMessage(&m_msg); // 키입력관련 메시지 변환  WM_KEYDOWN -> WM_CHAR
+			DispatchMessage(&m_msg);
+		}
+		else
+		{
+			Update();
+			Render();
+		}
+	}
+	return 0;
+}
+
+
+
+void GameApp::Update()
+{
+	m_Timer.Tick();
+}
+
+//
+//  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
+//
+//  용도: 주 창의 메시지를 처리합니다.
+//  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
+//
+//
 LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
-
-	//case WM_KEYDOWN:
-	//	if (wParam == VK_F11)
-	//	{
-	//		// Toggle fullscreen mode
-	//		if (D2DRenderer::IsWindowFullscreen(hWnd))
-	//			D2DRenderer::ExitFullscreen(hWnd);
-	//		else
-	//			D2DRenderer::EnterFullscreen(hWnd);
-	//	}
-	//	break;
-	//case WM_COMMAND:
-	//{
-	//	int wmId = LOWORD(wParam);
-	//	// 메뉴 선택을 구문 분석합니다:
-	//	switch (wmId)
-	//	{
-	//	case IDM_EXIT:
-	//		DestroyWindow(hWnd);
-	//		break;
-	//	default:
-	//		return DefWindowProc(hWnd, message, wParam, lParam);
-	//	}
-	//}
-	//break;
-
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-		EndPaint(hWnd, &ps);
-	}
-	break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		return 0;
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
-}
-
-int GameApp::Initialize(_In_ HINSTANCE hInstance, _In_ int nCmdShow)
-{
-
-	WNDCLASSEXW wcex;
-
-	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndProc;
-	wcex.cbClsExtra = 0;
-	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = NULL;// MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
-	wcex.lpszClassName = L"Square's Dream";
-	wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
-
-	RegisterClassExW(&wcex);
-
-	if (!InitInstance(hInstance, nCmdShow))
-	{
-		return FALSE;
-	}
-
-	// 얘 
-	if (!D2DRenderer::Get()->InitDirect2D(hWnd))
-		return FALSE;
-
-	Init();
-
-	return TRUE;
-}
-
-void GameApp::Uninitialize()
-{
-	D2DRenderer::Get()->UninitDirect2D();
-}
-
-
-void GameApp::Loop()
-{
-	MSG msg;
-	// 기본 메시지 루프입니다:
-	while (TRUE)
-	{
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			if (msg.message == WM_QUIT)
-				break;
-
-			//윈도우 메시지 처리 
-			TranslateMessage(&msg); // 키입력관련 메시지 변환  WM_KEYDOWN -> WM_CHAR
-			DispatchMessage(&msg);
-		}
-		else
-		{
-			TimeManager::Get()->Update();
-			Input::Update();
-
-			FixedUpdate();
-			Update();
-			LateUpdate();
-			Render();
-		}
-	}
-}
-
-void GameApp::Init()
-{
-	TimeManager::Get()->Init();
-	Input::Initailize();
-	D2DRenderer::Get()->InitDirect2D(hWnd);
-}
-
-void GameApp::FixedUpdate()
-{
-	static float deltaCount;
-	deltaCount += TimeManager::Get()->GetDeltaTime();
-	while (deltaCount >= 0.02f)
-	{
-		//CollisionManager 추가
-
-		WorldManager::FixedUpdate();
-		deltaCount -= 0.02f;
-	}
-
-}
-
-void GameApp::Update()
-{
-	//TimeManager::Get()->Update();
-	WorldManager::Update();
-	//Input::Update();
-	CollisionManager::Update();
-}
-
-void GameApp::LateUpdate()
-{
-
-}
-
-void GameApp::Render()
-{
-	D2DRenderer::Get()->BeginDraw();
-	WorldManager::Render();
-	D2DRenderer::Get()->EndDraw();
-
 }
