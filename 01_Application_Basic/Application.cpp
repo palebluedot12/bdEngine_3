@@ -5,6 +5,17 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
 
+/*
+렌더링 파이프라인
+--------------------------------------------------
+Input Assembler
+Vertex Shader
+(생략 가능) Tessellation Stage
+Rasterizer (고정값)
+Pixel Shader
+Output Merger
+*/
+
 
 // 정점 선언.
 struct Vertex
@@ -82,18 +93,22 @@ bool Application::InitD3D()
 	HRESULT hr = 0;
 
 	// 스왑체인 속성 설정 구조체 생성.
+	// 스왑체인 : Device가 렌더링하는 버퍼를 화면에 표시하는 역할
 	DXGI_SWAP_CHAIN_DESC swapDesc = {};
 	swapDesc.BufferCount = 1;
 	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapDesc.OutputWindow = m_hWnd;	// 스왑체인 출력할 창 핸들 값.
 	swapDesc.Windowed = true;		// 창 모드 여부 설정.
 	swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
 	// 백버퍼(텍스처)의 가로/세로 크기 설정.
 	swapDesc.BufferDesc.Width = m_ClientWidth;
 	swapDesc.BufferDesc.Height = m_ClientHeight;
+
 	// 화면 주사율 설정.
 	swapDesc.BufferDesc.RefreshRate.Numerator = 60;
 	swapDesc.BufferDesc.RefreshRate.Denominator = 1;
+
 	// 샘플링 관련 설정.
 	swapDesc.SampleDesc.Count = 1;
 	swapDesc.SampleDesc.Quality = 0;
@@ -102,11 +117,13 @@ bool Application::InitD3D()
 #ifdef _DEBUG
 	creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
-	// 1. 장치 생성.   2.스왑체인 생성. 3.장치 컨텍스트 생성.
+
+	// 1. 장치 생성  2.스왑체인 생성  3.장치 컨텍스트 생성
 	HR_T(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, NULL, NULL,
 		D3D11_SDK_VERSION, &swapDesc, &m_pSwapChain, &m_pDevice, NULL, &m_pDeviceContext));
 
-	// 4. 렌더타겟뷰 생성.  (백버퍼를 이용하는 렌더타겟뷰)	
+	// 4. 렌더타겟뷰 생성 (백버퍼를 이용하는 렌더타겟뷰)	
+	// 렌더타겟뷰는 렌더링 파이프라인의 출력을 받을 자원(Texture)을 연결하는 역할을 한다.
 	ID3D11Texture2D* pBackBufferTexture = nullptr;
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // 텍스처는 내부 참조 증가
@@ -151,12 +168,13 @@ bool Application::InitScene()
 	//   |  /  |                중앙이 (0,0)  왼쪽이 (-1,0) 오른쪽이 (1,0) , 위쪽이 (0,1) 아래쪽이 (0,-1)
 	//   |/    |
 	//	 2-----3
+	// 
 	Vertex vertices[] =
 	{
-		Vertex(Vector3(-0.5f,  0.5f, 0.5f), Vector4(1.0f, 0.0f, 0.0f, 1.0f)),  // 
-		Vertex(Vector3(0.5f,  0.5f, 0.5f), Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
-		Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
-		Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f))
+		Vertex(Vector3(-0.5f, 0.5f, 0.0f), Vector4(1.0f, 0.0f, 0.0f, 1.0f)),	 // (x, y, z), (r, g, b, a) 
+		Vertex(Vector3(0.5f, 0.5f, 0.5f), Vector4(0.0f, 1.0f, 0.0f, 1.0f)),		
+		Vertex(Vector3(-0.5f, -0.5f, 0.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f)),	
+		Vertex(Vector3(0.5f, -0.5f, 0.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f))		
 	};
 
 	D3D11_BUFFER_DESC vbDesc = {};
@@ -191,6 +209,7 @@ bool Application::InitScene()
 		0, 1, 2,
 		2, 1, 3
 	};
+
 	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장.
 	D3D11_BUFFER_DESC ibDesc = {};
 	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
