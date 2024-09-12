@@ -7,12 +7,12 @@
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
-class Application :
+class SolarSystem :
 	public GameApp
 {
 public:
-	Application(HINSTANCE hInstance);
-	~Application();
+	SolarSystem(HINSTANCE hInstance);
+	~SolarSystem();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 (  뎊스 스텐실 뷰도 있지만 아직 사용하지 않는다.)
 	ID3D11Device* m_pDevice = nullptr;						// 디바이스	

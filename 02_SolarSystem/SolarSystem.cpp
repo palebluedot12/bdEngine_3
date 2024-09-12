@@ -1,4 +1,4 @@
-#include "Application.h"
+ï»¿#include "SolarSystem.h"
 #include "..\\Engine\\Helper.h"
 #include <d3dcompiler.h>
 #include <imgui.h>
@@ -9,22 +9,22 @@
 #pragma comment(lib,"d3dcompiler.lib")
 
 /*
-·»´õ¸µ ÆÄÀÌÇÁ¶óÀÎ
+ë Œë”ë§ íŒŒì´í”„ë¼ì¸
 --------------------------------------------------
 Input Assembler
 Vertex Shader
-(»ı·« °¡´É) Tessellation Stage
-Rasterizer (°íÁ¤°ª)
+(ìƒëµ ê°€ëŠ¥) Tessellation Stage
+Rasterizer (ê³ ì •ê°’)
 Pixel Shader
 Output Merger
 */
 
 
-// Á¤Á¡ ¼±¾ğ.
+// ì •ì  ì„ ì–¸.
 struct Vertex
 {
-	Vector3 position;		// Á¤Á¡ À§Ä¡ Á¤º¸.
-	Vector4 color;			// Á¤Á¡ »ö»ó Á¤º¸.
+	Vector3 position;		// ì •ì  ìœ„ì¹˜ ì •ë³´.
+	Vector4 color;			// ì •ì  ìƒ‰ìƒ ì •ë³´.
 
 	Vertex(float x, float y, float z) : position(x, y, z) { }
 	Vertex(Vector3 position) : position(position) { }
@@ -40,19 +40,19 @@ struct ConstantBuffer
 	Matrix mProjection;
 };
 
-Application::Application(HINSTANCE hInstance)
+SolarSystem::SolarSystem(HINSTANCE hInstance)
 	:GameApp(hInstance)
 {
 
 }
 
-Application::~Application()
+SolarSystem::~SolarSystem()
 {
 	UninitScene();
 	UninitD3D();
 }
 
-bool Application::Initialize(UINT Width, UINT Height)
+bool SolarSystem::Initialize(UINT Width, UINT Height)
 {
 	__super::Initialize(Width, Height);
 
@@ -68,34 +68,34 @@ bool Application::Initialize(UINT Width, UINT Height)
 	return true;
 }
 
-void Application::Update()
+void SolarSystem::Update()
 {
 	__super::Update();
 
 	float t = GameTimer::m_Instance->TotalTime();
 
-	// XM = DirectXMath, yÃàÀ» Áß½ÉÀ¸·Î È¸ÀüÇÏ´Â Çà·Ä. 1¹øÂ° Å¥ºê
+	// XM = DirectXMath, yì¶•ì„ ì¤‘ì‹¬ìœ¼ë¡œ íšŒì „í•˜ëŠ” í–‰ë ¬. 1ë²ˆì§¸ íë¸Œ
 	m_World1 = XMMatrixRotationY(t);
 
-	// 2¹øÂ° Å¥ºê.
+	// 2ë²ˆì§¸ íë¸Œ.
 	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
 	XMMATRIX mSpin = XMMatrixRotationZ(-t);
 	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);
 	XMMATRIX mOrbit = XMMatrixRotationY(-t * 2.0f);
 
-	m_World2 = mScale * mSpin * mTranslate * mOrbit; // ½ºÄÉÀÏÀû¿ë -> R(Á¦ÀÚ¸®YÈ¸Àü) -> ¿ŞÂÊÀ¸·Î ÀÌµ¿ ->  ±ËµµÈ¸Àü  
+	m_World2 = mScale * mSpin * mTranslate * mOrbit; // ìŠ¤ì¼€ì¼ì ìš© -> R(ì œìë¦¬YíšŒì „) -> ì™¼ìª½ìœ¼ë¡œ ì´ë™ ->  ê¶¤ë„íšŒì „  
 
 }
 
-void Application::Render()
+void SolarSystem::Render()
 {
 	float color[4] = { 0.0f, 0.5f, 0.5f, 1.0f };
 
-	// È­¸é Ä¥ÇÏ±â.
+	// í™”ë©´ ì¹ í•˜ê¸°.
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
-	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0); // µª½º¹öÆÛ 1.0f·Î ÃÊ±âÈ­.
+	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0); // ëìŠ¤ë²„í¼ 1.0fë¡œ ì´ˆê¸°í™”.
 
-	// Draw°è¿­ ÇÔ¼ö¸¦ È£ÃâÇÏ±âÀü¿¡ ·»´õ¸µ ÆÄÀÌÇÁ¶óÀÎ¿¡ ÇÊ¼ö ½ºÅ×ÀÌÁö ¼³Á¤À» ÇØ¾ßÇÑ´Ù.	
+	// Drawê³„ì—´ í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•˜ê¸°ì „ì— ë Œë”ë§ íŒŒì´í”„ë¼ì¸ì— í•„ìˆ˜ ìŠ¤í…Œì´ì§€ ì„¤ì •ì„ í•´ì•¼í•œë‹¤.	
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertexBufferStride, &m_VertexBufferOffset);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout);
@@ -177,27 +177,27 @@ void Application::Render()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool Application::InitD3D()
+bool SolarSystem::InitD3D()
 {
 	HRESULT hr = 0;
 
-	// ½º¿ÒÃ¼ÀÎ ¼Ó¼º ¼³Á¤ ±¸Á¶Ã¼ »ı¼º.
+	// ìŠ¤ì™‘ì²´ì¸ ì†ì„± ì„¤ì • êµ¬ì¡°ì²´ ìƒì„±.
 	DXGI_SWAP_CHAIN_DESC swapDesc = {};
-	swapDesc.BufferCount = 1;								// ¹é¹öÆÛ °³¼ö
-	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // ¹öÆÛ¸¦ ·»´õ¸µ °á°ú¸¦ ÀúÀåÇÏ±â À§ÇÑ Ãâ·Â¹öÆÛ·Î »ç¿ëÇÏ°Ú´Ù.
-	swapDesc.OutputWindow = m_hWnd;							// ½º¿ÒÃ¼ÀÎ Ãâ·ÂÇÒ Ã¢ ÇÚµé °ª.
-	swapDesc.Windowed = true;								// Ã¢ ¸ğµå ¿©ºÎ ¼³Á¤.
-	swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;// ¹é¹öÆÛÀÇ Æ÷¸Ë ¼³Á¤ (32ºñÆ® »ö»ó - RGBA 8ºñÆ®¾¿)
+	swapDesc.BufferCount = 1;								// ë°±ë²„í¼ ê°œìˆ˜
+	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // ë²„í¼ë¥¼ ë Œë”ë§ ê²°ê³¼ë¥¼ ì €ì¥í•˜ê¸° ìœ„í•œ ì¶œë ¥ë²„í¼ë¡œ ì‚¬ìš©í•˜ê² ë‹¤.
+	swapDesc.OutputWindow = m_hWnd;							// ìŠ¤ì™‘ì²´ì¸ ì¶œë ¥í•  ì°½ í•¸ë“¤ ê°’.
+	swapDesc.Windowed = true;								// ì°½ ëª¨ë“œ ì—¬ë¶€ ì„¤ì •.
+	swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;// ë°±ë²„í¼ì˜ í¬ë§· ì„¤ì • (32ë¹„íŠ¸ ìƒ‰ìƒ - RGBA 8ë¹„íŠ¸ì”©)
 
-	// ¹é¹öÆÛ(ÅØ½ºÃ³)ÀÇ °¡·Î/¼¼·Î Å©±â ¼³Á¤.
+	// ë°±ë²„í¼(í…ìŠ¤ì²˜)ì˜ ê°€ë¡œ/ì„¸ë¡œ í¬ê¸° ì„¤ì •.
 	swapDesc.BufferDesc.Width = m_ClientWidth;
 	swapDesc.BufferDesc.Height = m_ClientHeight;
 
-	// È­¸é ÁÖ»çÀ² ¼³Á¤.
+	// í™”ë©´ ì£¼ì‚¬ìœ¨ ì„¤ì •.
 	swapDesc.BufferDesc.RefreshRate.Numerator = 60;
 	swapDesc.BufferDesc.RefreshRate.Denominator = 1;
 
-	// »ùÇÃ¸µ °ü·Ã ¼³Á¤.
+	// ìƒ˜í”Œë§ ê´€ë ¨ ì„¤ì •.
 	swapDesc.SampleDesc.Count = 1;
 	swapDesc.SampleDesc.Quality = 0;
 
@@ -206,20 +206,20 @@ bool Application::InitD3D()
 	creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	// 1. ÀåÄ¡ »ı¼º  2.½º¿ÒÃ¼ÀÎ »ı¼º  3.ÀåÄ¡ ÄÁÅØ½ºÆ® »ı¼º
+	// 1. ì¥ì¹˜ ìƒì„±  2.ìŠ¤ì™‘ì²´ì¸ ìƒì„±  3.ì¥ì¹˜ ì»¨í…ìŠ¤íŠ¸ ìƒì„±
 	HR_T(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, NULL, NULL,
 		D3D11_SDK_VERSION, &swapDesc, &m_pSwapChain, &m_pDevice, NULL, &m_pDeviceContext));
 
-	// 4. ·»´õÅ¸°Ùºä »ı¼º (¹é¹öÆÛ¸¦ ÀÌ¿ëÇÏ´Â ·»´õÅ¸°Ùºä)	
-	// ·»´õÅ¸°Ùºä´Â ·»´õ¸µ ÆÄÀÌÇÁ¶óÀÎÀÇ Ãâ·ÂÀ» ¹ŞÀ» ÀÚ¿ø(Texture)À» ¿¬°áÇÏ´Â ¿ªÇÒÀ» ÇÑ´Ù.
+	// 4. ë Œë”íƒ€ê²Ÿë·° ìƒì„± (ë°±ë²„í¼ë¥¼ ì´ìš©í•˜ëŠ” ë Œë”íƒ€ê²Ÿë·°)	
+	// ë Œë”íƒ€ê²Ÿë·°ëŠ” ë Œë”ë§ íŒŒì´í”„ë¼ì¸ì˜ ì¶œë ¥ì„ ë°›ì„ ìì›(Texture)ì„ ì—°ê²°í•˜ëŠ” ì—­í• ì„ í•œë‹¤.
 	ID3D11Texture2D* pBackBufferTexture = nullptr;
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // ÅØ½ºÃ³´Â ³»ºÎ ÂüÁ¶ Áõ°¡
-	SAFE_RELEASE(pBackBufferTexture);	//¿ÜºÎ ÂüÁ¶ Ä«¿îÆ®¸¦ °¨¼Ò½ÃÅ²´Ù.
-	// ·»´õ Å¸°ÙÀ» ÃÖÁ¾ Ãâ·Â ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÕ´Ï´Ù.
+	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // í…ìŠ¤ì²˜ëŠ” ë‚´ë¶€ ì°¸ì¡° ì¦ê°€
+	SAFE_RELEASE(pBackBufferTexture);	//ì™¸ë¶€ ì°¸ì¡° ì¹´ìš´íŠ¸ë¥¼ ê°ì†Œì‹œí‚¨ë‹¤.
+	// ë Œë” íƒ€ê²Ÿì„ ìµœì¢… ì¶œë ¥ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•©ë‹ˆë‹¤.
 	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
 
-	// 5. ºäÆ÷Æ® ¼³Á¤.	
+	// 5. ë·°í¬íŠ¸ ì„¤ì •.	
 	D3D11_VIEWPORT viewport = {};
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
@@ -229,7 +229,7 @@ bool Application::InitD3D()
 	viewport.MaxDepth = 1.0f;
 	m_pDeviceContext->RSSetViewports(1, &viewport);
 
-	//6. ‰X½º&½ºÅÙ½Ç ºä »ı¼º
+	//6. ëŠìŠ¤&ìŠ¤í…ì‹¤ ë·° ìƒì„±
 	D3D11_TEXTURE2D_DESC descDepth = {};
 	descDepth.Width = m_ClientWidth;
 	descDepth.Height = m_ClientHeight;
@@ -259,7 +259,7 @@ bool Application::InitD3D()
 	return true;
 }
 
-void Application::UninitD3D()
+void SolarSystem::UninitD3D()
 {
 	SAFE_RELEASE(m_pDevice);
 	SAFE_RELEASE(m_pDeviceContext);
@@ -267,26 +267,26 @@ void Application::UninitD3D()
 	SAFE_RELEASE(m_pRenderTargetView);
 }
 
-// 1. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ¹öÅØ½º ¹öÆÛ¹× ¹öÆÛ Á¤º¸ ÁØºñ
-// 2. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ InputLayout »ı¼º 	
-// 3. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ¹öÅØ½º ¼ÎÀÌ´õ »ı¼º
-// 4. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÀÎµ¦½º ¹öÆÛ »ı¼º
-// 5. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÇÈ¼¿ ¼ÎÀÌ´õ »ı¼º
-// 6. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ »ó¼ö ¹öÆÛ »ı¼º
-bool Application::InitScene()
+// 1. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ë²„í…ìŠ¤ ë²„í¼ë° ë²„í¼ ì •ë³´ ì¤€ë¹„
+// 2. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  InputLayout ìƒì„± 	
+// 3. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ë²„í…ìŠ¤ ì…°ì´ë” ìƒì„±
+// 4. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ì¸ë±ìŠ¤ ë²„í¼ ìƒì„±
+// 5. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  í”½ì…€ ì…°ì´ë” ìƒì„±
+// 6. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ìƒìˆ˜ ë²„í¼ ìƒì„±
+bool SolarSystem::InitScene()
 {
-	HRESULT hr = 0; // °á°ú°ª.
-	// 1. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ¹öÅØ½º ¹öÆÛ¹× ¹öÆÛ Á¤º¸ ÁØºñ
+	HRESULT hr = 0; // ê²°ê³¼ê°’.
+	// 1. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ë²„í…ìŠ¤ ë²„í¼ë° ë²„í¼ ì •ë³´ ì¤€ë¹„
 	// Normalized Device Coordinate
 	//   0-----1
 	//   |    /|
-	//   |  /  |                Áß¾ÓÀÌ (0,0)  ¿ŞÂÊÀÌ (-1,0) ¿À¸¥ÂÊÀÌ (1,0) , À§ÂÊÀÌ (0,1) ¾Æ·¡ÂÊÀÌ (0,-1)
+	//   |  /  |                ì¤‘ì•™ì´ (0,0)  ì™¼ìª½ì´ (-1,0) ì˜¤ë¥¸ìª½ì´ (1,0) , ìœ„ìª½ì´ (0,1) ì•„ë˜ìª½ì´ (0,-1)
 	//   |/    |
 	//	 2-----3
 	// 
 	// 
 
-	// Å¥ºêÀÇ 8°³ Á¤Á¡
+	// íë¸Œì˜ 8ê°œ ì •ì 
 	Vertex vertices[] = // Local or Object or Model Space    position
 	{
 		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
@@ -305,14 +305,14 @@ bool Application::InitScene()
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = vertices;			// ¹è¿­ µ¥ÀÌÅÍ ÇÒ´ç.
+	vbData.pSysMem = vertices;			// ë°°ì—´ ë°ì´í„° í• ë‹¹.
 	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer));
 
-	m_VertexBufferStride = sizeof(Vertex);		// ¹öÅØ½º ¹öÆÛ Á¤º¸
+	m_VertexBufferStride = sizeof(Vertex);		// ë²„í…ìŠ¤ ë²„í¼ ì •ë³´
 	m_VertexBufferOffset = 0;
 
-	// 2. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ InputLayout »ı¼º 	
-	D3D11_INPUT_ELEMENT_DESC layout[] = // ÀÔ·Â ·¹ÀÌ¾Æ¿ô.
+	// 2. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  InputLayout ìƒì„± 	
+	D3D11_INPUT_ELEMENT_DESC layout[] = // ì…ë ¥ ë ˆì´ì•„ì›ƒ.
 	{   // SemanticName , SemanticIndex , Format , InputSlot , AlignedByteOffset , InputSlotClass , InstanceDataStepRate	
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -322,12 +322,12 @@ bool Application::InitScene()
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
 		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
 
-	// 3. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ  ¹öÅØ½º ¼ÎÀÌ´õ »ı¼º
+	// 3. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•   ë²„í…ìŠ¤ ì…°ì´ë” ìƒì„±
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(),
 		vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
-	SAFE_RELEASE(vertexShaderBuffer);	// ¹öÆÛ ÇØÁ¦.
+	SAFE_RELEASE(vertexShaderBuffer);	// ë²„í¼ í•´ì œ.
 
-	// 4. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÀÎµ¦½º ¹öÆÛ »ı¼º
+	// 4. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ì¸ë±ìŠ¤ ë²„í¼ ìƒì„±
 	WORD indices[] =
 	{
 		3,1,0,  2,1,3,
@@ -338,7 +338,7 @@ bool Application::InitScene()
 		6,4,5,  7,4,6,
 	};
 
-	m_nIndices = ARRAYSIZE(indices);	// ÀÎµ¦½º °³¼ö ÀúÀå.
+	m_nIndices = ARRAYSIZE(indices);	// ì¸ë±ìŠ¤ ê°œìˆ˜ ì €ì¥.
 
 	bd.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -348,7 +348,7 @@ bool Application::InitScene()
 	ibData.pSysMem = indices;
 	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, &m_pIndexBuffer));
 
-	// 5. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÇÈ¼¿ ¼ÎÀÌ´õ »ı¼º
+	// 5. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  í”½ì…€ ì…°ì´ë” ìƒì„±
 	ID3D10Blob* pixelShaderBuffer = nullptr;
 
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
@@ -357,7 +357,7 @@ bool Application::InitScene()
 
 	SAFE_RELEASE(pixelShaderBuffer);
 
-	// 6. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ »ó¼ö ¹öÆÛ »ı¼º
+	// 6. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ìƒìˆ˜ ë²„í¼ ìƒì„±
 	// Create the constant buffer
 	bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -366,7 +366,7 @@ bool Application::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
 
-	// ½¦ÀÌ´õ¿¡ »ó¼ö¹öÆÛ¿¡ Àü´ŞÇÒ ½Ã½ºÅÛ ¸Ş¸ğ¸® µ¥ÀÌÅÍ ÃÊ±âÈ­
+	// ì‰ì´ë”ì— ìƒìˆ˜ë²„í¼ì— ì „ë‹¬í•  ì‹œìŠ¤í…œ ë©”ëª¨ë¦¬ ë°ì´í„° ì´ˆê¸°í™”
 	m_World1 = XMMatrixIdentity();
 	m_World2 = XMMatrixIdentity();
 
@@ -379,7 +379,7 @@ bool Application::InitScene()
 	return true;
 }
 
-void Application::UninitScene()
+void SolarSystem::UninitScene()
 {
 	SAFE_RELEASE(m_pVertexBuffer);
 	SAFE_RELEASE(m_pVertexShader);
@@ -389,10 +389,10 @@ void Application::UninitScene()
 	SAFE_RELEASE(m_pDepthStencilView);
 }
 
-bool Application::InitImGUI()
+bool SolarSystem::InitImGUI()
 {
 	/*
-		ImGui ÃÊ±âÈ­.
+		ImGui ì´ˆê¸°í™”.
 	*/
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -410,7 +410,7 @@ bool Application::InitImGUI()
 	return true;
 }
 
-void Application::UninitImGUI()
+void SolarSystem::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -420,7 +420,7 @@ void Application::UninitImGUI()
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT CALLBACK Application::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK SolarSystem::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
