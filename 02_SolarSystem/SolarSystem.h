@@ -3,6 +3,9 @@
 #include "..\\Engine\\GameApp.h"
 #include <d3d11.h>
 #include <directxtk/SimpleMath.h>
+#include <DirectXTK/Model.h>
+#include <DirectXTK/Effects.h>
+#include <DirectXTK/CommonStates.h>
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -44,6 +47,13 @@ public:
 	Matrix                m_World2;				// 월드좌표계 공간으로 변환을 위한 행렬.
 	Matrix                m_View;				// 카메라좌표계 공간으로 변환을 위한 행렬.
 	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
+
+	std::unique_ptr<DirectX::Model> m_model;
+	std::unique_ptr<DirectX::CommonStates> m_states;
+	std::unique_ptr<DirectX::BasicEffect> m_effect;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+
+
 
 	virtual bool Initialize(UINT Width, UINT Height);
 	virtual void Update();

@@ -5,8 +5,19 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 
+#include <DirectXTK/SimpleMath.h>
+#include <DirectXTK/Model.h>
+#include <DirectXTK/Effects.h>
+#include <DirectXTK/CommonStates.h>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+//#pragma comment(lib, "assimp-vc142-mt.lib") // Assimp 라이브러리 링크
+
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
+
 
 /*
 렌더링 파이프라인
@@ -26,6 +37,7 @@ struct Vertex
 	Vector3 position;		// 정점 위치 정보.
 	Vector4 color;			// 정점 색상 정보.
 
+	Vertex() { }
 	Vertex(float x, float y, float z) : position(x, y, z) { }
 	Vertex(Vector3 position) : position(position) { }
 
@@ -104,24 +116,52 @@ void SolarSystem::Render()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
 	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
 
-	// Update variables for the first cube
+
+	//// Update variables for the first cube
+	//ConstantBuffer cb1;
+	//cb1.mWorld = XMMatrixTranspose(m_World1);
+	//cb1.mView = XMMatrixTranspose(m_View);
+	//cb1.mProjection = XMMatrixTranspose(m_Projection);
+	//m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+
+	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
+
+	//// Update variables for the second cube	
+	//ConstantBuffer cb2;
+	//cb2.mWorld = XMMatrixTranspose(m_World2);
+	//cb2.mView = XMMatrixTranspose(m_View);
+	//cb2.mProjection = XMMatrixTranspose(m_Projection);
+	//m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb2, 0, 0);
+
+	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
+	   // Update variables for the first cube
 	ConstantBuffer cb1;
-	cb1.mWorld = XMMatrixTranspose(m_World1);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+	cb1.mWorld = DirectX::XMMatrixTranspose(m_World1);
+	cb1.mView = DirectX::XMMatrixTranspose(m_View);
+	cb1.mProjection = DirectX::XMMatrixTranspose(m_Projection);
+
+	// Ensure the constant buffer is valid
+	if (m_pConstantBuffer)
+	{
+		m_pDeviceContext->UpdateSubresource(
+			m_pConstantBuffer,   // Destination buffer
+			0,                   // Subresource index
+			nullptr,             // No need for a box
+			&cb1,                // Pointer to data
+			0,                   // Row pitch (not used)
+			0                    // Depth pitch (not used)
+		);
+	}
+	else
+	{
+		// Handle the case where m_pConstantBuffer is not initialized
+		// You can add error handling or logging here
+	}
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-
-	// Update variables for the second cube	
-	ConstantBuffer cb2;
-	cb2.mWorld = XMMatrixTranspose(m_World2);
-	cb2.mView = XMMatrixTranspose(m_View);
-	cb2.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb2, 0, 0);
-
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	//imgui
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -276,89 +316,93 @@ void SolarSystem::UninitD3D()
 bool SolarSystem::InitScene()
 {
 	HRESULT hr = 0; // 결과값.
-	// 1. Render() 에서 파이프라인에 바인딩할 버텍스 버퍼및 버퍼 정보 준비
-	// Normalized Device Coordinate
-	//   0-----1
-	//   |    /|
-	//   |  /  |                중앙이 (0,0)  왼쪽이 (-1,0) 오른쪽이 (1,0) , 위쪽이 (0,1) 아래쪽이 (0,-1)
-	//   |/    |
-	//	 2-----3
-	// 
-	// 
+	
+	Assimp::Importer importer;
 
-	// 큐브의 8개 정점
-	Vertex vertices[] = // Local or Object or Model Space    position
+	const aiScene* scene = importer.ReadFile("turtle3.obj", aiProcess_Triangulate | aiProcess_ConvertToLeftHanded);
+
+	if (!scene || !scene->HasMeshes()) {
+		MessageBox(0, L"FBX 파일을 불러오는 데 실패했습니다.", 0, 0);
+		return false;
+	}
+
+	// 첫 번째 메쉬
+	aiMesh* mesh = scene->mMeshes[0];
+
+	std::vector<Vertex> vertices;
+	for (unsigned int i = 0; i < mesh->mNumVertices; ++i) 
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-0.4f, 0.4f, 1.0f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ Vector3(-0.4f, -0.4f, -1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(0.4f, -0.4f, -1.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(0.4f, -0.4f, 1.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-0.4f, -0.4f, 1.0f),	Vector4(0.0f, 0.0f, 0.0f, 1.0f) },
-	};
+		Vertex vertex;
+		vertex.position = Vector3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
 
+		// 색상 정보가 있는 경우 처리 (없으면 기본 색상 적용)
+		if (mesh->HasVertexColors(0)) {
+			vertex.color = Vector4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
+		}
+		else {
+			vertex.color = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // 기본 색상 (하얀색)
+		}
+
+		vertices.push_back(vertex);
+	}
+
+	std::vector<WORD> indices;
+	for (unsigned int i = 0; i < mesh->mNumFaces; ++i) 
+	{
+		aiFace& face = mesh->mFaces[i];
+		for (unsigned int j = 0; j < face.mNumIndices; ++j) 
+		{
+			indices.push_back(static_cast<WORD>(face.mIndices[j]));
+		}
+	}
+
+	// Vertex Buffer 생성
 	D3D11_BUFFER_DESC bd = {};
-	bd.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
+	bd.ByteWidth = sizeof(Vertex) * vertices.size();
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.CPUAccessFlags = 0;
+
 	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = vertices;			// 배열 데이터 할당.
+	vbData.pSysMem = vertices.data();
 	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer));
 
-	m_VertexBufferStride = sizeof(Vertex);		// 버텍스 버퍼 정보
+	m_VertexBufferStride = sizeof(Vertex);
 	m_VertexBufferOffset = 0;
 
-	// 2. Render() 에서 파이프라인에 바인딩할 InputLayout 생성 	
-	D3D11_INPUT_ELEMENT_DESC layout[] = // 입력 레이아웃.
-	{   // SemanticName , SemanticIndex , Format , InputSlot , AlignedByteOffset , InputSlotClass , InstanceDataStepRate	
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	// Index Buffer 생성
+	bd.ByteWidth = sizeof(WORD) * indices.size();
+	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = indices.data();
+	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, &m_pIndexBuffer));
+
+	m_nIndices = indices.size();
+
+	// 4. Input Layout 생성 (셰이더에서 사용할 정점 레이아웃 정의)
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	ID3D10Blob* vertexShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
 		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
 
-	// 3. Render() 에서 파이프라인에 바인딩할  버텍스 셰이더 생성
+	// 5. Vertex Shader 생성
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(),
 		vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
-	SAFE_RELEASE(vertexShaderBuffer);	// 버퍼 해제.
+	SAFE_RELEASE(vertexShaderBuffer);
 
-	// 4. Render() 에서 파이프라인에 바인딩할 인덱스 버퍼 생성
-	WORD indices[] =
-	{
-		3,1,0,  2,1,3,
-		0,5,4,  1,5,0,
-		3,4,7,  0,4,3,
-		1,6,5,  2,6,1,
-		2,7,6,  3,7,2,
-		6,4,5,  7,4,6,
-	};
-
-	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장.
-
-	bd.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0;
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = indices;
-	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, &m_pIndexBuffer));
-
-	// 5. Render() 에서 파이프라인에 바인딩할 픽셀 셰이더 생성
+	// 6. Pixel Shader 생성
 	ID3D10Blob* pixelShaderBuffer = nullptr;
-
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),
 		pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
-
 	SAFE_RELEASE(pixelShaderBuffer);
 
-	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
-	// Create the constant buffer
+	// 7. Constant Buffer 생성 (월드, 뷰, 프로젝션 행렬)
 	bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(ConstantBuffer);
@@ -366,10 +410,9 @@ bool SolarSystem::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
 
-	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
+	// 초기 행렬 데이터 설정 (월드, 뷰, 프로젝션)
 	m_World1 = XMMatrixIdentity();
 	m_World2 = XMMatrixIdentity();
-
 	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);

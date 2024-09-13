@@ -114,14 +114,14 @@ void Application::Render()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
-	// Update variables for the second cube	
-	ConstantBuffer cb2;
-	cb2.mWorld = XMMatrixTranspose(m_World2);
-	cb2.mView = XMMatrixTranspose(m_View);
-	cb2.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb2, 0, 0);
+	//// Update variables for the second cube	
+	//ConstantBuffer cb2;
+	//cb2.mWorld = XMMatrixTranspose(m_World2);
+	//cb2.mView = XMMatrixTranspose(m_View);
+	//cb2.mProjection = XMMatrixTranspose(m_Projection);
+	//m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb2, 0, 0);
 
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	//imgui
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
