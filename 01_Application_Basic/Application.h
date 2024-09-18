@@ -7,6 +7,13 @@
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
+struct Mesh
+{
+	Matrix mLocal;
+	Matrix mWorld;
+	float rotationSpeed;
+};
+
 class Application :
 	public GameApp
 {
@@ -59,6 +66,27 @@ public:
 	void UninitScene();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+private:
+	float m_RotationSpeed1;  // 첫번째 큐브의 자전 속도
+	float m_OrbitSpeed1;     // 첫번째 큐브의 공전 속도
+	float m_RotationSpeed2;  // 두번째 큐브의 자전 속도
+	float m_OrbitSpeed2;     // 두번째 큐브의 공전 속도
+
+	Mesh m_Meshes[3];
+	Vector3 m_MeshPositions[3];
+	Vector3 m_CameraPosition;
+	float m_CameraFOV;
+	float m_CameraNear;
+	float m_CameraFar;
+
+	// Depth Stencil 관련
+	ID3D11Texture2D* mDepthStencilBuffer = nullptr;
+	ID3D11DepthStencilView* mDepthStencilView = nullptr;
+	ID3D11DepthStencilState* mDepthStencilState = nullptr;
+
+	bool InitDepthStencil();
+
 
 };
 

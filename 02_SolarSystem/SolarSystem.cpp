@@ -319,7 +319,7 @@ bool SolarSystem::InitScene()
 	
 	Assimp::Importer importer;
 
-	const aiScene* scene = importer.ReadFile("turtle3.obj", aiProcess_Triangulate | aiProcess_ConvertToLeftHanded);
+	const aiScene* scene = importer.ReadFile("turtle2.fbx", aiProcess_Triangulate | aiProcess_ConvertToLeftHanded);
 
 	if (!scene || !scene->HasMeshes()) {
 		MessageBox(0, L"FBX 파일을 불러오는 데 실패했습니다.", 0, 0);

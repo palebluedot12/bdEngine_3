@@ -4,6 +4,7 @@
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
+#include <string>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -40,10 +41,25 @@ struct ConstantBuffer
 	Matrix mProjection;
 };
 
-Application::Application(HINSTANCE hInstance)
-	:GameApp(hInstance)
-{
 
+Application::Application(HINSTANCE hInstance)
+	:GameApp(hInstance),
+	m_RotationSpeed1(1.0f),
+	m_OrbitSpeed1(2.0f),
+	m_RotationSpeed2(1.0f),
+	m_OrbitSpeed2(2.0f),
+	m_CameraPosition(0.0f, 1.0f, -5.0f),
+	m_CameraFOV(XM_PIDIV2),
+	m_CameraNear(0.01f),
+	m_CameraFar(100.0f)
+{
+	m_MeshPositions[0] = Vector3(0.0f, 0.0f, 0.0f);
+	m_MeshPositions[1] = Vector3(2.0f, 0.0f, 0.0f);
+	m_MeshPositions[2] = Vector3(1.0f, 1.0f, 0.0f);
+
+	m_Meshes[0].rotationSpeed = 1.0f;
+	m_Meshes[1].rotationSpeed = 2.0f;
+	m_Meshes[2].rotationSpeed = 0.0f;
 }
 
 Application::~Application()
@@ -74,16 +90,33 @@ void Application::Update()
 
 	float t = GameTimer::m_Instance->TotalTime();
 
-	// XM = DirectXMath, y축을 중심으로 회전하는 행렬. 1번째 큐브
-	m_World1 = XMMatrixRotationY(t);
+	//// XM = DirectXMath, y축을 중심으로 회전하는 행렬. 1번째 큐브
+	//m_World1 = XMMatrixRotationY(t);
 
-	// 2번째 큐브.
-	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
-	XMMATRIX mSpin = XMMatrixRotationZ(-t);
-	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);
-	XMMATRIX mOrbit = XMMatrixRotationY(-t * 2.0f);
+	//// 2번째 큐브.
+	//XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
+	//XMMATRIX mSpin = XMMatrixRotationZ(-t);
+	//XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);
+	//XMMATRIX mOrbit = XMMatrixRotationY(-t * 2.0f);
 
-	m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전  
+	//m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전  
+
+	m_Meshes[0].mLocal = XMMatrixRotationY(t * m_Meshes[0].rotationSpeed);
+	m_Meshes[1].mLocal = XMMatrixRotationY(t * m_Meshes[1].rotationSpeed) * XMMatrixTranslation(m_MeshPositions[1].x, m_MeshPositions[1].y, m_MeshPositions[1].z);
+	m_Meshes[2].mLocal = XMMatrixTranslation(m_MeshPositions[2].x, m_MeshPositions[2].y, m_MeshPositions[2].z);
+
+	m_Meshes[0].mWorld = m_Meshes[0].mLocal * XMMatrixTranslation(m_MeshPositions[0].x, m_MeshPositions[0].y, m_MeshPositions[0].z);
+	m_Meshes[1].mWorld = m_Meshes[1].mLocal * m_Meshes[0].mWorld;
+	m_Meshes[2].mWorld = m_Meshes[2].mLocal * m_Meshes[1].mWorld;
+
+	// Update view matrix
+	XMVECTOR Eye = XMVectorSet(m_CameraPosition.x, m_CameraPosition.y, m_CameraPosition.z, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	m_View = XMMatrixLookAtLH(Eye, At, Up);
+
+	// Update projection matrix
+	m_Projection = XMMatrixPerspectiveFovLH(m_CameraFOV, m_ClientWidth / (FLOAT)m_ClientHeight, m_CameraNear, m_CameraFar);
 
 }
 
@@ -104,14 +137,14 @@ void Application::Render()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
 	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
 
-	// Update variables for the first cube
-	ConstantBuffer cb1;
-	cb1.mWorld = XMMatrixTranspose(m_World1);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+	//// Update variables for the first cube
+	//ConstantBuffer cb1;
+	//cb1.mWorld = XMMatrixTranspose(m_World1);
+	//cb1.mView = XMMatrixTranspose(m_View);
+	//cb1.mProjection = XMMatrixTranspose(m_Projection);
+	//m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
 	//// Update variables for the second cube	
@@ -123,52 +156,99 @@ void Application::Render()
 
 	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	//imgui
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	for (int i = 0; i < 3; ++i)
+	{
+		ConstantBuffer cb;
+		cb.mWorld = XMMatrixTranspose(m_Meshes[i].mWorld);
+		cb.mView = XMMatrixTranspose(m_View);
+		cb.mProjection = XMMatrixTranspose(m_Projection);
+		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb, 0, 0);
 
-	// Start the Dear ImGui frame
+		m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	}
+
+	////imgui
+	//ImGuiIO& io = ImGui::GetIO(); (void)io;
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	//// Start the Dear ImGui frame
+	//ImGui_ImplDX11_NewFrame();
+	//ImGui_ImplWin32_NewFrame();
+	//ImGui::NewFrame();
+
+
+	//// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+	//if (m_show_demo_window)
+	//	ImGui::ShowDemoWindow(&m_show_demo_window);
+
+	//// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+	//{
+
+	//	ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+	//	ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+	//	ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
+	//	ImGui::Checkbox("Another Window", &m_show_another_window);
+
+	//	ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+
+	//	if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+	//		m_counter++;
+	//	ImGui::SameLine();
+	//	ImGui::Text("counter = %d", m_counter);
+
+	//	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+	//	ImGui::ColorEdit3("clear color", (float*)&m_ClearColor); // Edit 3 floats representing a color	
+	//	ImGui::End();
+	//}
+
+	//// 3. Show another simple window.
+	//if (m_show_another_window)
+	//{
+	//	ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+	//	ImGui::Text("Hello from another window!");
+	//	if (ImGui::Button("Close Me"))
+	//		m_show_another_window = false;
+	//	ImGui::End();
+	//}
+	//ImGui::Render();
+	//ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
+	ImGui::Begin("Mesh and Camera Controls");
 
-	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-	if (m_show_demo_window)
-		ImGui::ShowDemoWindow(&m_show_demo_window);
-
-	// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+	// Mesh position controls
+	for (int i = 0; i < 3; ++i)
 	{
-
-		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-		ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
-		ImGui::Checkbox("Another Window", &m_show_another_window);
-
-		ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			m_counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", m_counter);
-
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-		ImGui::ColorEdit3("clear color", (float*)&m_ClearColor); // Edit 3 floats representing a color	
-		ImGui::End();
+		ImGui::Text("Mesh %d Position", i + 1);
+		ImGui::SliderFloat3(("##Mesh" + std::to_string(i + 1)).c_str(), &m_MeshPositions[i].x, -10.0f, 10.0f);
 	}
 
-	// 3. Show another simple window.
-	if (m_show_another_window)
+	// Camera controls
+	ImGui::Text("Camera Position");
+	ImGui::SliderFloat3("##CameraPos", &m_CameraPosition.x, -20.0f, 20.0f);
+
+	ImGui::Text("Camera FOV (degrees)");
+	float fovDegrees = XMConvertToDegrees(m_CameraFOV);
+	if (ImGui::SliderFloat("##CameraFOV", &fovDegrees, 1.0f, 180.0f))
 	{
-		ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		ImGui::Text("Hello from another window!");
-		if (ImGui::Button("Close Me"))
-			m_show_another_window = false;
-		ImGui::End();
+		m_CameraFOV = XMConvertToRadians(fovDegrees);
 	}
+
+	ImGui::Text("Camera Near Plane");
+	ImGui::SliderFloat("##CameraNear", &m_CameraNear, 0.01f, 10.0f);
+
+	ImGui::Text("Camera Far Plane");
+	ImGui::SliderFloat("##CameraFar", &m_CameraFar, 10.0f, 1000.0f);
+
+	ImGui::End();
+
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
