@@ -21,45 +21,20 @@ Output Merger
 */
 
 
-// 정점 선언.
-struct Vertex
-{
-	Vector3 position;		// 정점 위치 정보.
-	Vector4 color;			// 정점 색상 정보.
-
-	Vertex(float x, float y, float z) : position(x, y, z) { }
-	Vertex(Vector3 position) : position(position) { }
-
-	Vertex(Vector3 position, Vector4 color)
-		: position(position), color(color) { }
-};
-
-struct ConstantBuffer
-{
-	Matrix mWorld;
-	Matrix mView;
-	Matrix mProjection;
-};
-
-
 Application::Application(HINSTANCE hInstance)
 	:GameApp(hInstance),
-	m_RotationSpeed1(1.0f),
-	m_OrbitSpeed1(2.0f),
-	m_RotationSpeed2(1.0f),
-	m_OrbitSpeed2(2.0f),
 	m_CameraPosition(0.0f, 1.0f, -5.0f),
-	m_CameraFOV(XM_PIDIV2),
+	m_CameraFOV(XM_PIDIV2), // PIDIV2 => 파이/2 => 90도 시야각
 	m_CameraNear(0.01f),
 	m_CameraFar(100.0f)
 {
 	m_MeshPositions[0] = Vector3(0.0f, 0.0f, 0.0f);
-	m_MeshPositions[1] = Vector3(2.0f, 0.0f, 0.0f);
-	m_MeshPositions[2] = Vector3(1.0f, 1.0f, 0.0f);
+	m_MeshPositions[1] = Vector3(3.0f, 0.3f, 0.0f);
+	m_MeshPositions[2] = Vector3(4.5f, 0.3f, 0.0f);
 
 	m_Meshes[0].rotationSpeed = 1.0f;
 	m_Meshes[1].rotationSpeed = 2.0f;
-	m_Meshes[2].rotationSpeed = 0.0f;
+	m_Meshes[2].rotationSpeed = 0.1f;
 }
 
 Application::~Application()
@@ -101,15 +76,17 @@ void Application::Update()
 
 	//m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전  
 
-	m_Meshes[0].mLocal = XMMatrixRotationY(t * m_Meshes[0].rotationSpeed);
-	m_Meshes[1].mLocal = XMMatrixRotationY(t * m_Meshes[1].rotationSpeed) * XMMatrixTranslation(m_MeshPositions[1].x, m_MeshPositions[1].y, m_MeshPositions[1].z);
-	m_Meshes[2].mLocal = XMMatrixTranslation(m_MeshPositions[2].x, m_MeshPositions[2].y, m_MeshPositions[2].z);
+	m_Meshes[0].mLocal = XMMatrixScaling(0.7f, 0.7f, 0.7f) * XMMatrixRotationY(t * m_Meshes[0].rotationSpeed) * XMMatrixTranslation(m_MeshPositions[0].x, m_MeshPositions[0].y, m_MeshPositions[0].z);
+	m_Meshes[1].mLocal = XMMatrixScaling(0.6f, 0.6f, 0.6f) * XMMatrixRotationY(t * m_Meshes[1].rotationSpeed) * XMMatrixTranslation(m_MeshPositions[1].x, m_MeshPositions[1].y, m_MeshPositions[1].z);
+	m_Meshes[2].mLocal = XMMatrixScaling(0.5f, 0.5f, 0.5f) * XMMatrixRotationY(t * m_Meshes[2].rotationSpeed) * XMMatrixTranslation(m_MeshPositions[2].x, m_MeshPositions[2].y, m_MeshPositions[2].z);
 
-	m_Meshes[0].mWorld = m_Meshes[0].mLocal * XMMatrixTranslation(m_MeshPositions[0].x, m_MeshPositions[0].y, m_MeshPositions[0].z);
+	// mesh 1, 2 => mesh 0 이 부모
+	m_Meshes[0].mWorld = m_Meshes[0].mLocal;
 	m_Meshes[1].mWorld = m_Meshes[1].mLocal * m_Meshes[0].mWorld;
-	m_Meshes[2].mWorld = m_Meshes[2].mLocal * m_Meshes[1].mWorld;
+	m_Meshes[2].mWorld = m_Meshes[2].mLocal * m_Meshes[0].mWorld;
 
-	// Update view matrix
+	// Eye : 카메라 자체의 position
+	// At : 카메라가 바라보는 position
 	XMVECTOR Eye = XMVectorSet(m_CameraPosition.x, m_CameraPosition.y, m_CameraPosition.z, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -137,25 +114,6 @@ void Application::Render()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
 	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
 
-	//// Update variables for the first cube
-	//ConstantBuffer cb1;
-	//cb1.mWorld = XMMatrixTranspose(m_World1);
-	//cb1.mView = XMMatrixTranspose(m_View);
-	//cb1.mProjection = XMMatrixTranspose(m_Projection);
-	//m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
-
-	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
-
-	//// Update variables for the second cube	
-	//ConstantBuffer cb2;
-	//cb2.mWorld = XMMatrixTranspose(m_World2);
-	//cb2.mView = XMMatrixTranspose(m_View);
-	//cb2.mProjection = XMMatrixTranspose(m_Projection);
-	//m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb2, 0, 0);
-
-	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
 	for (int i = 0; i < 3; ++i)
 	{
 		ConstantBuffer cb;
@@ -166,55 +124,6 @@ void Application::Render()
 
 		m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 	}
-
-	////imgui
-	//ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-	//// Start the Dear ImGui frame
-	//ImGui_ImplDX11_NewFrame();
-	//ImGui_ImplWin32_NewFrame();
-	//ImGui::NewFrame();
-
-
-	//// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-	//if (m_show_demo_window)
-	//	ImGui::ShowDemoWindow(&m_show_demo_window);
-
-	//// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-	//{
-
-	//	ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-	//	ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-	//	ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
-	//	ImGui::Checkbox("Another Window", &m_show_another_window);
-
-	//	ImGui::SliderFloat("float", &m_f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-
-	//	if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-	//		m_counter++;
-	//	ImGui::SameLine();
-	//	ImGui::Text("counter = %d", m_counter);
-
-	//	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-	//	ImGui::ColorEdit3("clear color", (float*)&m_ClearColor); // Edit 3 floats representing a color	
-	//	ImGui::End();
-	//}
-
-	//// 3. Show another simple window.
-	//if (m_show_another_window)
-	//{
-	//	ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-	//	ImGui::Text("Hello from another window!");
-	//	if (ImGui::Button("Close Me"))
-	//		m_show_another_window = false;
-	//	ImGui::End();
-	//}
-	//ImGui::Render();
-	//ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
@@ -230,6 +139,13 @@ void Application::Render()
 		ImGui::SliderFloat3(("##Mesh" + std::to_string(i + 1)).c_str(), &m_MeshPositions[i].x, -10.0f, 10.0f);
 	}
 
+	// Mesh rotation speed controls
+	ImGui::Text("Mesh Rotation Speed");
+	for (int i = 0; i < 3; ++i)
+	{
+		ImGui::SliderFloat(("##RotationSpeed" + std::to_string(i + 1)).c_str(), &m_Meshes[i].rotationSpeed, 0.0f, 10.0f);
+	}
+
 	// Camera controls
 	ImGui::Text("Camera Position");
 	ImGui::SliderFloat3("##CameraPos", &m_CameraPosition.x, -20.0f, 20.0f);
@@ -241,19 +157,11 @@ void Application::Render()
 		m_CameraFOV = XMConvertToRadians(fovDegrees);
 	}
 
-	ImGui::Text("Camera Near Plane");
-	ImGui::SliderFloat("##CameraNear", &m_CameraNear, 0.01f, 10.0f);
-
-	ImGui::Text("Camera Far Plane");
-	ImGui::SliderFloat("##CameraFar", &m_CameraFar, 10.0f, 1000.0f);
-
 	ImGui::End();
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
-
-	// Present the information rendered to the back buffer to the front buffer (the screen)
 	m_pSwapChain->Present(0, 0);
 }
 
@@ -334,6 +242,20 @@ bool Application::InitD3D()
 	HR_T(m_pDevice->CreateDepthStencilView(textureDepthStencil, &descDSV, &m_pDepthStencilView));
 	SAFE_RELEASE(textureDepthStencil);
 
+	// Create Depth Stencil State
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = TRUE;
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	depthStencilDesc.StencilEnable = FALSE;
+	depthStencilDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	depthStencilDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+	ID3D11DepthStencilState* pDepthStencilState = nullptr;
+	HR_T(m_pDevice->CreateDepthStencilState(&depthStencilDesc, &pDepthStencilState));
+	m_pDeviceContext->OMSetDepthStencilState(pDepthStencilState, 1);
+	SAFE_RELEASE(pDepthStencilState);
+
 	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 
 	return true;
@@ -366,17 +288,15 @@ bool Application::InitScene()
 	// 
 	// 
 
-	// 큐브의 8개 정점
 	Vertex vertices[] = // Local or Object or Model Space    position
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-0.4f, 0.4f, 1.0f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ Vector3(-0.4f, -0.4f, -1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(0.4f, -0.4f, -1.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(0.4f, -0.4f, 1.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-0.4f, -0.4f, 1.0f),	Vector4(0.0f, 0.0f, 0.0f, 1.0f) },
+		{ Vector3(0.0f, 1.0f, 0.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) }, // 위쪽 끝점
+		{ Vector3(0.5f, 0.0f, 0.5f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) }, // 앞 오른쪽
+		{ Vector3(-0.5f, 0.0f, 0.5f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) }, // 앞 왼쪽
+		{ Vector3(0.5f, 0.0f, -0.5f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) }, // 뒤 오른쪽
+		{ Vector3(-0.5f, 0.0f, -0.5f),	Vector4(1.0f, 0.0f, 1.0f, 1.0f) }, // 뒤 왼쪽
+		{ Vector3(0.0f, -1.0f, 0.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) }, // 아래쪽 끝점
+		{ Vector3(0.0f, 0.0f, 0.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) }, // 중심
 	};
 
 	D3D11_BUFFER_DESC bd = {};
@@ -408,14 +328,33 @@ bool Application::InitScene()
 	SAFE_RELEASE(vertexShaderBuffer);	// 버퍼 해제.
 
 	// 4. Render() 에서 파이프라인에 바인딩할 인덱스 버퍼 생성
+	//WORD indices[] =
+	//{
+	//	3,1,0,  2,1,3,
+	//	0,5,4,  1,5,0,
+	//	3,4,7,  0,4,3,
+	//	1,6,5,  2,6,1,
+	//	2,7,6,  3,7,2,
+	//	6,4,5,  7,4,6,
+	//};
+
 	WORD indices[] =
 	{
-		3,1,0,  2,1,3,
-		0,5,4,  1,5,0,
-		3,4,7,  0,4,3,
-		1,6,5,  2,6,1,
-		2,7,6,  3,7,2,
-		6,4,5,  7,4,6,
+		// 위쪽 면
+		0, 1, 2, 
+		0, 3, 1,  
+		0, 2, 4,  
+		0, 4, 3,  
+
+		// 아래쪽 면
+		5, 1, 2, 
+		5, 3, 1, 
+		5, 2, 4,  
+		5, 4, 3,  
+
+		// 중심부를 채우는 면 (가운데 네모 부분을 삼각형으로)
+		1, 3, 2, 
+		3, 4, 2  
 	};
 
 	m_nIndices = ARRAYSIZE(indices);	// 인덱스 개수 저장.

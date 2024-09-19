@@ -14,6 +14,26 @@ struct Mesh
 	float rotationSpeed;
 };
 
+// 정점 선언.
+struct Vertex
+{
+	Vector3 position;		// 정점 위치 정보.
+	Vector4 color;			// 정점 색상 정보.
+
+	Vertex(float x, float y, float z) : position(x, y, z) { }
+	Vertex(Vector3 position) : position(position) { }
+
+	Vertex(Vector3 position, Vector4 color)
+		: position(position), color(color) { }
+};
+
+struct ConstantBuffer
+{
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProjection;
+};
+
 class Application :
 	public GameApp
 {
@@ -21,12 +41,16 @@ public:
 	Application(HINSTANCE hInstance);
 	~Application();
 
-	// 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 (  뎊스 스텐실 뷰도 있지만 아직 사용하지 않는다.)
+	// 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스
 	ID3D11Device* m_pDevice = nullptr;						// 디바이스	
 	ID3D11DeviceContext* m_pDeviceContext = nullptr;		// 즉시 디바이스 컨텍스트
 	IDXGISwapChain* m_pSwapChain = nullptr;					// 스왑체인
 	ID3D11RenderTargetView* m_pRenderTargetView = nullptr;	// 렌더링 타겟뷰
-	ID3D11DepthStencilView* m_pDepthStencilView = nullptr;  // 깊이값 처리를 위한 뎊스스텐실 뷰
+
+	//depthstencil
+	ID3D11DepthStencilView* m_pDepthStencilView = nullptr;  
+	ID3D11Texture2D* m_DepthStencilBuffer = nullptr;
+	ID3D11DepthStencilState* m_DepthStencilState = nullptr;
 
 	// 렌더링 파이프라인에 적용하는  객체와 정보
 	ID3D11VertexShader* m_pVertexShader = nullptr;	// 정점 셰이더.
@@ -68,22 +92,12 @@ public:
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
-	float m_RotationSpeed1;  // 첫번째 큐브의 자전 속도
-	float m_OrbitSpeed1;     // 첫번째 큐브의 공전 속도
-	float m_RotationSpeed2;  // 두번째 큐브의 자전 속도
-	float m_OrbitSpeed2;     // 두번째 큐브의 공전 속도
-
 	Mesh m_Meshes[3];
 	Vector3 m_MeshPositions[3];
 	Vector3 m_CameraPosition;
 	float m_CameraFOV;
 	float m_CameraNear;
 	float m_CameraFar;
-
-	// Depth Stencil 관련
-	ID3D11Texture2D* mDepthStencilBuffer = nullptr;
-	ID3D11DepthStencilView* mDepthStencilView = nullptr;
-	ID3D11DepthStencilState* mDepthStencilState = nullptr;
 
 	bool InitDepthStencil();
 
