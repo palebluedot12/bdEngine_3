@@ -385,9 +385,9 @@ bool Application::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
 
-	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
-	m_World1 = XMMatrixIdentity();
-	m_World2 = XMMatrixIdentity();
+	//// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
+	//m_World1 = XMMatrixIdentity();
+	//m_World2 = XMMatrixIdentity();
 
 	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);

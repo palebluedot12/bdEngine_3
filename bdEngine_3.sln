@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Engine.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_SolarSystem", "02_SolarSystem\02_SolarSystem.vcxproj", "{92951006-D035-4025-ABAB-220F0AF09393}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03_Lighting_Lambertian", "03_Lighting_Lambertian\03_Lighting_Lambertian.vcxproj", "{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{92951006-D035-4025-ABAB-220F0AF09393}.Release|x64.Build.0 = Release|x64
 		{92951006-D035-4025-ABAB-220F0AF09393}.Release|x86.ActiveCfg = Release|Win32
 		{92951006-D035-4025-ABAB-220F0AF09393}.Release|x86.Build.0 = Release|Win32
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Debug|x64.ActiveCfg = Debug|x64
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Debug|x64.Build.0 = Debug|x64
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Debug|x86.ActiveCfg = Debug|Win32
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Debug|x86.Build.0 = Debug|Win32
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Release|x64.ActiveCfg = Release|x64
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Release|x64.Build.0 = Release|x64
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Release|x86.ActiveCfg = Release|Win32
+		{C51FAFCF-B09D-4E8A-84B7-6784D6FE7928}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

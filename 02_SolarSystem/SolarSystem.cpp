@@ -200,15 +200,6 @@ void SolarSystem::Render()
 		ImGui::End();
 	}
 
-	// 3. Show another simple window.
-	if (m_show_another_window)
-	{
-		ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		ImGui::Text("Hello from another window!");
-		if (ImGui::Button("Close Me"))
-			m_show_another_window = false;
-		ImGui::End();
-	}
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
