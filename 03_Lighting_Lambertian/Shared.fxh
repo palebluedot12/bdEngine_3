@@ -40,10 +40,3 @@ struct PS_INPUT
     float3 Norm : TEXCOORD1;
     float2 Tex : TEXCOORD0;
 };
-
-
-
-
-
-
-

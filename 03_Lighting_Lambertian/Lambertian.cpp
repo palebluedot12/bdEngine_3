@@ -61,9 +61,9 @@ void Lambertian::Update()
 	m_LightDirsEvaluated[0] = m_InitialLightDirs[0];
 
 	// Rotate the second light around the origin
-	XMMATRIX mRotate = XMMatrixRotationY(-2.0f * t);
+	//XMMATRIX mRotate = XMMatrixRotationY(-2.0f * t);
 	XMVECTOR vLightDir = XMLoadFloat4(&m_InitialLightDirs[1]);
-	vLightDir = XMVector3Transform(vLightDir, mRotate);
+	//vLightDir = XMVector3Transform(vLightDir, mRotate);
 	XMStoreFloat4(&m_LightDirsEvaluated[1], vLightDir);
 }
 
@@ -87,7 +87,6 @@ void Lambertian::Render()
 	m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
 	m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
-
 	// Update matrix variables and lighting variables
 	ConstantBuffer cb1;
 	cb1.mWorld = XMMatrixTranspose(m_World);
@@ -100,9 +99,7 @@ void Lambertian::Render()
 	cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
-
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
 
 	// Render each light	
 	for (int m = 0; m < 2; m++)
@@ -299,7 +296,6 @@ bool Lambertian::InitScene()
 
 	SAFE_RELEASE(vertexShaderBuffer);
 
-
 	// 4. Render() 에서 파이프라인에 바인딩할 인덱스 버퍼 생성
 	WORD indices[] =
 	{
@@ -357,10 +353,7 @@ bool Lambertian::InitScene()
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_pDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear));
 
-
 	// TODO : Shader 수정하고 Render 수정하고 Vertex에 TexCoord 넣고
-
-
 
 	// 초기값설정
 	m_World = XMMatrixIdentity();
