@@ -33,6 +33,9 @@ public:
 	ID3D11Buffer* m_pIndexBuffer = nullptr;				// 버텍스 버퍼.
 	int m_nIndices = 0;									// 인덱스 개수.
 	ID3D11Buffer* m_pConstantBuffer = nullptr;			// 상수 버퍼.
+	ID3D11ShaderResourceView* m_pTextureRV = nullptr;	// 텍스처 리소스 뷰.
+	ID3D11SamplerState* m_pSamplerLinear = nullptr;		// 샘플러 상태.
+
 
 	Matrix                m_World;				// 월드좌표계 공간으로 변환을 위한 행렬.
 	Matrix                m_View;				// 뷰좌표계 공간으로 변환을 위한 행렬.

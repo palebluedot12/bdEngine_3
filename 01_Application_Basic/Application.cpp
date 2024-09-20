@@ -83,7 +83,7 @@ void Application::Update()
 	// mesh 1, 2 => mesh 0 이 부모
 	m_Meshes[0].mWorld = m_Meshes[0].mLocal;
 	m_Meshes[1].mWorld = m_Meshes[1].mLocal * m_Meshes[0].mWorld;
-	m_Meshes[2].mWorld = m_Meshes[2].mLocal * m_Meshes[0].mWorld;
+	m_Meshes[2].mWorld = m_Meshes[2].mLocal * m_Meshes[1].mWorld;
 
 	// Eye : 카메라 자체의 position
 	// At : 카메라가 바라보는 position
@@ -415,7 +415,6 @@ bool Application::InitImGUI()
 	*/
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
