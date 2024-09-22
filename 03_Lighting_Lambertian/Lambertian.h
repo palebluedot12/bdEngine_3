@@ -43,7 +43,7 @@ public:
 
 	XMFLOAT4 m_LightColors[2] =
 	{
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f),
 		XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f)
 	};
 	XMFLOAT4 m_InitialLightDirs[2] =
@@ -53,6 +53,9 @@ public:
 	};
 	XMFLOAT4 m_LightDirsEvaluated[2] = {};		// 계산된 라이트 방향
 
+	float m_Yaw = 0.0f;     // Yaw
+	float m_Pitch = 0.0f;   // 회전의 X축 (Pitch)
+
 	virtual bool Initialize(UINT Width, UINT Height);
 	virtual void Update();
 	virtual void Render();
@@ -60,7 +63,13 @@ public:
 	bool InitD3D();
 	void UninitD3D();
 
+	bool InitImGUI();
+	void UninitImGUI();
+
 	bool InitScene();		// 쉐이더,버텍스,인덱스
 	void UninitScene();
+
+	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
 };
 

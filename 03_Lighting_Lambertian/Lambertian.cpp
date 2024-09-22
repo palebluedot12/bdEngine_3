@@ -1,11 +1,13 @@
 #include "Lambertian.h"
 #include "..\\Engine\\Helper.h"
 #include <d3dcompiler.h>
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx11.h>
 #include <Directxtk/DDSTextureLoader.h>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
-
 
 // 정점 선언.
 struct Vertex
@@ -48,6 +50,9 @@ bool Lambertian::Initialize(UINT Width, UINT Height)
 	if (!InitScene())
 		return false;
 
+	if (!InitImGUI())
+		return false;
+
 	return true;
 }
 
@@ -56,7 +61,14 @@ void Lambertian::Update()
 	__super::Update();
 
 	float t = GameTimer::m_Instance->TotalTime();
-	m_World = XMMatrixRotationY(t);
+	//m_World = XMMatrixRotationY(t);
+
+	// Yaw와 Pitch 값을 이용하여 회전 행렬 생성
+	XMMATRIX yawMatrix = XMMatrixRotationY(XMConvertToRadians(m_Yaw));
+	XMMATRIX pitchMatrix = XMMatrixRotationX(XMConvertToRadians(m_Pitch));
+
+	// 월드 행렬에 두 개의 회전 행렬을 곱하여 최종 회전 행렬 생성
+	m_World = pitchMatrix * yawMatrix;
 
 	m_LightDirsEvaluated[0] = m_InitialLightDirs[0];
 
@@ -117,9 +129,32 @@ void Lambertian::Render()
 		m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 	}
 
-	//
+	// ImGui rendering
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	// ImGui 창 시작
+	ImGui::Begin("Cube and Light");
+
+	// 라이트 조정 (2개)
+	ImGui::Text("Light");
+	ImGui::SliderFloat3("Light Direction", (float*)&m_LightDirsEvaluated[0], -1.0f, 1.0f);
+	ImGui::ColorEdit3("Light Color", (float*)&m_LightColors[0]);
+
+	ImGui::Text("Light 2");
+	ImGui::SliderFloat3("Light 2 Direction", (float*)&m_LightDirsEvaluated[1], -1.0f, 1.0f);
+	ImGui::ColorEdit3("Light 2 Color", (float*)&m_LightColors[1]);
+
+	// 큐브 회전 조정
+	ImGui::SliderFloat("Yaw", &m_Yaw, -180.0f, 180.0f);
+	ImGui::SliderFloat("Pitch", &m_Pitch, -90.0f, 90.0f);
+
+	ImGui::End();
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
 	// Present our back buffer to our front buffer
-	//
 	m_pSwapChain->Present(0, 0);
 }
 
@@ -206,6 +241,44 @@ void Lambertian::UninitD3D()
 	SAFE_RELEASE(m_pDeviceContext);
 	SAFE_RELEASE(m_pSwapChain);
 	SAFE_RELEASE(m_pRenderTargetView);
+}
+
+bool Lambertian::InitImGUI()
+{
+	/*
+		ImGui 초기화.
+	*/
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplWin32_Init(m_hWnd);
+	ImGui_ImplDX11_Init(this->m_pDevice, this->m_pDeviceContext);
+
+	//
+	return true;
+}
+
+void Lambertian::UninitImGUI()
+{
+	// Cleanup
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+}
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT CALLBACK Lambertian::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+		return true;
+
+	return __super::WndProc(hWnd, message, wParam, lParam);
 }
 
 // 1. Render() 에서 파이프라인에 바인딩할 버텍스 버퍼및 버퍼 정보 준비
