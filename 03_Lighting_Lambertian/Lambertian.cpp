@@ -139,11 +139,11 @@ void Lambertian::Render()
 
 	// 라이트 조정 (2개)
 	ImGui::Text("Light");
-	ImGui::SliderFloat3("Light Direction", (float*)&m_LightDirsEvaluated[0], -1.0f, 1.0f);
+	ImGui::SliderFloat3("Light Direction", (float*)&m_InitialLightDirs[0], -1.0f, 1.0f);
 	ImGui::ColorEdit3("Light Color", (float*)&m_LightColors[0]);
 
 	ImGui::Text("Light 2");
-	ImGui::SliderFloat3("Light 2 Direction", (float*)&m_LightDirsEvaluated[1], -1.0f, 1.0f);
+	ImGui::SliderFloat3("Light 2 Direction", (float*)&m_InitialLightDirs[1], -1.0f, 1.0f);
 	ImGui::ColorEdit3("Light 2 Color", (float*)&m_LightColors[1]);
 
 	// 큐브 회전 조정
@@ -343,7 +343,7 @@ bool Lambertian::InitScene()
 
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	vbData.pSysMem = vertices;
-	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer));
+	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer)); 
 
 	// 버텍스 버퍼 바인딩.
 	m_VertexBufferStride = sizeof(Vertex);
