@@ -404,11 +404,11 @@ bool SolarSystem::InitScene()
 	// 초기 행렬 데이터 설정 (월드, 뷰, 프로젝션)
 	m_World1 = XMMatrixIdentity();
 	m_World2 = XMMatrixIdentity();
-	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -200.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	m_View = XMMatrixLookAtLH(Eye, At, Up);
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 500.0f);
 
 	return true;
 }

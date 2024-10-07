@@ -204,7 +204,7 @@ bool Application::InitD3D()
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // 텍스처는 내부 참조 증가
 	SAFE_RELEASE(pBackBufferTexture);	//외부 참조 카운트를 감소시킨다.
-	// 렌더 타겟을 최종 출력 파이프라인에 바인딩합니다.
+	// 렌더 타겟을 최종 출력 파이프라인에 바인딩.
 	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
 
 	// 5. 뷰포트 설정.	
@@ -217,7 +217,7 @@ bool Application::InitD3D()
 	viewport.MaxDepth = 1.0f;
 	m_pDeviceContext->RSSetViewports(1, &viewport);
 
-	//6. 뎊스&스텐실 뷰 생성
+	//6. 뎁스&스텐실 뷰 생성
 	D3D11_TEXTURE2D_DESC descDepth = {};
 	descDepth.Width = m_ClientWidth;
 	descDepth.Height = m_ClientHeight;

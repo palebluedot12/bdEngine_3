@@ -11,7 +11,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
 	Application App(hInstance);  // 생성자에서 아이콘,윈도우 이름만 바꾼다
-	if (!App.Initialize(1024, 768))
+	if (!App.Initialize(1280, 720))
 		return -1;
 
 	return App.Run();

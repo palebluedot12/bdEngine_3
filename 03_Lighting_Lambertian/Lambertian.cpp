@@ -359,7 +359,7 @@ bool Lambertian::InitScene()
 	};
 
 	ID3D10Blob* vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
+	HR_T(CompileShaderFromFile(L"BasicVertexShader.cso", "main", "vs_4_0", &vertexShaderBuffer));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
 		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
 
@@ -394,7 +394,7 @@ bool Lambertian::InitScene()
 
 	// 5. Render() 에서 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ID3D10Blob* pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(CompileShaderFromFile(L"BasicPixelShader.cso", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),
 		pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
 	SAFE_RELEASE(pixelShaderBuffer);
