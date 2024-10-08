@@ -31,10 +31,11 @@ HRESULT CompileShaderFromFile(const WCHAR* szFileName, LPCSTR szEntryPoint, LPCS
 #endif
 
 	ID3DBlob* pErrorBlob = nullptr;
-	//hr = D3DCompileFromFile(szFileName, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, szEntryPoint, szShaderModel,
-	//	dwShaderFlags, 0, ppBlobOut, &pErrorBlob);
 
-	hr = D3DReadFileToBlob(szFileName, ppBlobOut);
+	hr = D3DCompileFromFile(szFileName, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, szEntryPoint, szShaderModel,
+		dwShaderFlags, 0, ppBlobOut, &pErrorBlob);
+
+	//hr = D3DReadFileToBlob(szFileName, ppBlobOut);
 
 	if (FAILED(hr))
 	{

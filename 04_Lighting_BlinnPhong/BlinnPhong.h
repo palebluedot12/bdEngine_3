@@ -8,12 +8,12 @@
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
-class Lambertian :
+class BlinnPhong :
 	public GameApp
 {
 public:
-	Lambertian(HINSTANCE hInstance);
-	~Lambertian();
+	BlinnPhong (HINSTANCE hInstance);
+	~BlinnPhong();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 
 	ID3D11Device* m_pDevice = nullptr;						// 디바이스	

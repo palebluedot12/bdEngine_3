@@ -36,4 +36,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\03_Lighting_Lambertian\BasicPixelShader.hlsl">
+      <Filter>소스 파일</Filter>
+    </FxCompile>
+  </ItemGroup>
 </Project>
