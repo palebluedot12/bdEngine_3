@@ -41,20 +41,32 @@ public:
 	Matrix                m_View;				// 뷰좌표계 공간으로 변환을 위한 행렬.
 	Matrix                m_Projection;			// 단위장치좌표계( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
-	XMFLOAT4 m_LightColors[2] =
-	{
-		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f),
-		XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f)
-	};
-	XMFLOAT4 m_InitialLightDirs[2] =
-	{
-		XMFLOAT4(-0.577f, 0.577f, -1.0f, 1.0f),
-		XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f),
-	};
-	XMFLOAT4 m_LightDirsEvaluated[2] = {};		// 계산된 라이트 방향
+	//XMFLOAT4 m_LightColors[2] =
+	//{
+	//	XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f),
+	//	XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f)
+	//};
+	//XMFLOAT4 m_InitialLightDirs[2] =
+	//{
+	//	XMFLOAT4(-0.577f, 0.577f, -1.0f, 1.0f),
+	//	XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f),
+	//};
+	//XMFLOAT4 m_LightDirsEvaluated[2] = {};		// 계산된 라이트 방향
 
-	float m_Yaw = 0.0f;     // Yaw
-	float m_Pitch = 0.0f;   // 회전의 X축 (Pitch)
+	XMFLOAT3 m_LightDirection;
+	XMFLOAT4 m_LightAmbient;
+	XMFLOAT4 m_LightDiffuse;
+	XMFLOAT4 m_LightSpecular;
+
+	XMFLOAT4 m_MaterialAmbient;
+	XMFLOAT4 m_MaterialDiffuse;
+	XMFLOAT4 m_MaterialSpecular;
+	float m_MaterialSpecularPower;
+
+	XMFLOAT3 m_CubeScale;
+	XMFLOAT3 m_CubeRotation;
+
+	XMFLOAT3 m_ViewDirEvaluated;
 
 	virtual bool Initialize(UINT Width, UINT Height);
 	virtual void Update();

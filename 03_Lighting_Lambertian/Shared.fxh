@@ -18,9 +18,17 @@ cbuffer ConstantBuffer : register(b0)
     matrix World;
     matrix View;
     matrix Projection;
-    float4 vLightDir[2];
-    float4 vLightColor[2];
-    float4 vOutputColor;
+    
+    float4 vLightDir;
+    float4 vLightAmbient;
+    float4 vLightDiffuse;
+    float4 vLightSpecular;
+    float4 vMaterialAmbient;
+    float4 vMaterialDiffuse;
+    float4 vMaterialSpecular;
+    float fMaterialSpecularPower;
+    float3 vCameraPos;
+    float Padding;
 }
 
 //--------------------------------------------------------------------------------------
@@ -28,12 +36,13 @@ struct VS_INPUT
 {
     float4 Pos : POSITION;
     float3 Norm : NORMAL;
-    float2 Tex : TEXCOORD0;
+    float2 Tex : TEXCOORD;
 };
 
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
-    float3 Norm : TEXCOORD1;
-    float2 Tex : TEXCOORD0;
+    float3 Norm : NORMAL;
+    float2 Tex : TEXCOORD;
+    float4 WorldPos : TEXCOORD1;
 };

@@ -23,13 +23,29 @@ struct ConstantBuffer
 	Matrix mView;
 	Matrix mProjection;
 
-	Vector4 vLightDir[2];
-	Vector4 vLightColor[2];
-	Vector4 vOutputColor;
+	Vector4 vLightDir;
+	Vector4 vLightAmbient;
+	Vector4 vLightDiffuse;
+	Vector4 vLightSpecular;
+	Vector4 vMaterialAmbient;
+	Vector4 vMaterialDiffuse;
+	Vector4 vMaterialSpecular;
+	Vector3 vCameraPos;
+	float fMaterialSpecularPower;
 };
 
 BlinnPhong::BlinnPhong(HINSTANCE hInstance)
 	:GameApp(hInstance)
+	, m_LightDirection(0.0f, 0.0f, -1.0f)
+	, m_LightAmbient(0.1f, 0.1f, 0.1f, 0.1f)
+	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
+	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
+	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
+	, m_MaterialDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
+	, m_MaterialSpecular(1.0f, 1.0f, 1.0f, 1.0f)
+	, m_MaterialSpecularPower(2000.0f)
+	, m_CubeScale(1.0f, 1.0f, 1.0f)
+	, m_CubeRotation(0.0f, 0.0f, 0.0f)
 {
 
 }
@@ -61,22 +77,25 @@ void BlinnPhong::Update()
 	__super::Update();
 
 	float t = GameTimer::m_Instance->TotalTime();
-	//m_World = XMMatrixRotationY(t);
 
-	// Yaw와 Pitch 값을 이용하여 회전 행렬 생성
-	XMMATRIX yawMatrix = XMMatrixRotationY(XMConvertToRadians(m_Yaw));
-	XMMATRIX pitchMatrix = XMMatrixRotationX(XMConvertToRadians(m_Pitch));
+	// 큐브 회전 행렬
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(m_CubeRotation.x),
+		XMConvertToRadians(m_CubeRotation.y),
+		XMConvertToRadians(m_CubeRotation.z));
 
-	// 월드 행렬에 두 개의 회전 행렬을 곱하여 최종 회전 행렬 생성
-	m_World = pitchMatrix * yawMatrix;
+	// 큐브 스케일 행렬
+	XMMATRIX scaleMatrix = XMMatrixScaling(m_CubeScale.x, m_CubeScale.y, m_CubeScale.z);
 
-	m_LightDirsEvaluated[0] = m_InitialLightDirs[0];
+	m_World = scaleMatrix * rotationMatrix;
 
-	// Rotate the second light around the origin
-	//XMMATRIX mRotate = XMMatrixRotationY(-2.0f * t);
-	XMVECTOR vLightDir = XMLoadFloat4(&m_InitialLightDirs[1]);
-	//vLightDir = XMVector3Transform(vLightDir, mRotate);
-	XMStoreFloat4(&m_LightDirsEvaluated[1], vLightDir);
+	// 카메라 위치 계산 (View 행렬의 역행렬에서 추출)
+	XMVECTOR determinant;
+	XMMATRIX invView = XMMatrixInverse(&determinant, m_View);
+	XMVECTOR cameraPos = invView.r[3];
+
+	// 월드 공간에서의 카메라 위치
+	XMStoreFloat3(&m_ViewDirEvaluated, XMVector3Normalize(cameraPos));
 }
 
 void BlinnPhong::Render()
@@ -104,30 +123,32 @@ void BlinnPhong::Render()
 	cb1.mWorld = XMMatrixTranspose(m_World);
 	cb1.mView = XMMatrixTranspose(m_View);
 	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	cb1.vLightDir[0] = m_LightDirsEvaluated[0];
-	cb1.vLightDir[1] = m_LightDirsEvaluated[1];
-	cb1.vLightColor[0] = m_LightColors[0];
-	cb1.vLightColor[1] = m_LightColors[1];
-	cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+	cb1.vLightDir = XMFLOAT4(m_LightDirection.x, m_LightDirection.y, m_LightDirection.z, 1.0f);
+	cb1.vLightAmbient = m_LightAmbient;
+	cb1.vLightDiffuse = m_LightDiffuse;
+	cb1.vLightSpecular = m_LightSpecular;
+	cb1.vMaterialAmbient = m_MaterialAmbient;
+	cb1.vMaterialDiffuse = m_MaterialDiffuse;
+	cb1.vMaterialSpecular = m_MaterialSpecular;
+	cb1.fMaterialSpecularPower = m_MaterialSpecularPower;
+	cb1.vCameraPos = m_ViewDirEvaluated;
 
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	// Render each light	
-	for (int m = 0; m < 2; m++)
-	{
-		XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirsEvaluated[m]));
-		XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f);
-		mLight = mLightScale * mLight;
+	 // Calculate the light transformation matrix
+	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat3(&m_LightDirection)); // 조명 방향에 맞게 위치 조정
+	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f); // 스케일 설정
+	mLight = mLightScale * mLight;
 
-		// Update the world variable to reflect the current light
-		cb1.mWorld = XMMatrixTranspose(mLight);
-		cb1.vOutputColor = m_LightColors[m];
-		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+	// Update the world variable to reflect the current light
+	cb1.mWorld = XMMatrixTranspose(mLight);
+	//cb1.vOutputColor = m_LightDiffuse; // 현재 조명의 색상 적용
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
-		m_pDeviceContext->PSSetShader(m_pPixelShaderSolid, nullptr, 0);
-		m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-	}
+	// Set the pixel shader for solid color rendering
+	m_pDeviceContext->PSSetShader(m_pPixelShaderSolid, nullptr, 0);
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
@@ -137,18 +158,24 @@ void BlinnPhong::Render()
 	// ImGui 창 시작
 	ImGui::Begin("Cube and Light");
 
-	// 라이트 조정 (2개)
-	ImGui::Text("Light");
-	ImGui::SliderFloat3("Light Direction", (float*)&m_InitialLightDirs[0], -1.0f, 1.0f);
-	ImGui::ColorEdit3("Light Color", (float*)&m_LightColors[0]);
+	// 라이트 조정
+	ImGui::Text("Light Properties");
+	ImGui::SliderFloat3("Light Direction", &m_LightDirection.x, -1.0f, 1.0f);
+	ImGui::ColorEdit3("Light Ambient", &m_LightAmbient.x);
+	ImGui::ColorEdit3("Light Diffuse", &m_LightDiffuse.x);
+	ImGui::ColorEdit3("Light Specular", &m_LightSpecular.x);
 
-	ImGui::Text("Light 2");
-	ImGui::SliderFloat3("Light 2 Direction", (float*)&m_InitialLightDirs[1], -1.0f, 1.0f);
-	ImGui::ColorEdit3("Light 2 Color", (float*)&m_LightColors[1]);
+	// Material 조정
+	ImGui::Text("Material Properties");
+	ImGui::ColorEdit3("Material Ambient", &m_MaterialAmbient.x);
+	ImGui::ColorEdit3("Material Diffuse", &m_MaterialDiffuse.x);
+	ImGui::ColorEdit3("Material Specular", &m_MaterialSpecular.x);
+	ImGui::SliderFloat("Material Specular Power", &m_MaterialSpecularPower, 2.0f, 4096.0f);
 
-	// 큐브 회전 조정
-	ImGui::SliderFloat("Yaw", &m_Yaw, -180.0f, 180.0f);
-	ImGui::SliderFloat("Pitch", &m_Pitch, -90.0f, 90.0f);
+	// 큐브 조정
+	ImGui::Text("Cube Properties");
+	ImGui::SliderFloat3("Cube Scale", &m_CubeScale.x, 0.1f, 2.0f);
+	ImGui::SliderFloat3("Cube Rotation", &m_CubeRotation.x, 0.0f, 360.0f);
 
 	ImGui::End();
 	ImGui::Render();
