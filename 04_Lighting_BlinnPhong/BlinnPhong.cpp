@@ -36,8 +36,8 @@ struct ConstantBuffer
 
 BlinnPhong::BlinnPhong(HINSTANCE hInstance)
 	:GameApp(hInstance)
-	, m_LightDirection(0.0f, 0.0f, -1.0f)
-	, m_LightAmbient(0.1f, 0.1f, 0.1f, 0.1f)
+	, m_LightDirection(0.0f, 0.0f, 1.0f)
+	, m_LightAmbient(0.5f, 0.5f, 0.5f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)

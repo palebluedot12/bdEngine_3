@@ -36,15 +36,15 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\03_Lighting_Lambertian\BasicVertexShader.hlsl">
+    <FxCompile Include="BasicPixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\03_Lighting_Lambertian\BasicPixelShader.hlsl">
+    <FxCompile Include="BasicVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\03_Lighting_Lambertian\Shared.fxh">
+    <None Include="Shared.fxh">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
