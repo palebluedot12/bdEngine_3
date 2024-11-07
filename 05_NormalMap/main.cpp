@@ -1,6 +1,6 @@
-// 01_imgui.cpp : ¾ÖÇÃ¸®ÄÉÀÌ¼Ç¿¡ ´ëÇÑ ÁøÀÔÁ¡À» Á¤ÀÇÇÕ´Ï´Ù.
+ï»¿// 01_imgui.cpp : ì• í”Œë¦¬ì¼€ì´ì…˜ì— ëŒ€í•œ ì§„ì…ì ì„ ì •ì˜í•©ë‹ˆë‹¤.
 //
-#include "BlinnPhong.h"
+#include "NormalMap.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -10,7 +10,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	BlinnPhong App(hInstance);  // »ı¼ºÀÚ¿¡¼­ ¾ÆÀÌÄÜ,À©µµ¿ì ÀÌ¸§¸¸ ¹Ù²Û´Ù
+	NormalMap App(hInstance);  // ìƒì„±ìì—ì„œ ì•„ì´ì½˜,ìœˆë„ìš° ì´ë¦„ë§Œ ë°”ê¾¼ë‹¤
 	if (!App.Initialize(1280, 720))
 		return -1;
 

@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03_Lighting_Lambertian", "0
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_Lighting_BlinnPhong", "04_Lighting_BlinnPhong\04_Lighting_BlinnPhong.vcxproj", "{AE3E799F-317A-4AFC-A3BD-61BAADA0A2B5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05_NormalMap", "05_NormalMap\05_NormalMap.vcxproj", "{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{AE3E799F-317A-4AFC-A3BD-61BAADA0A2B5}.Release|x64.Build.0 = Release|x64
 		{AE3E799F-317A-4AFC-A3BD-61BAADA0A2B5}.Release|x86.ActiveCfg = Release|Win32
 		{AE3E799F-317A-4AFC-A3BD-61BAADA0A2B5}.Release|x86.Build.0 = Release|Win32
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Debug|x64.ActiveCfg = Debug|x64
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Debug|x64.Build.0 = Debug|x64
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Debug|x86.ActiveCfg = Debug|Win32
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Debug|x86.Build.0 = Debug|Win32
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Release|x64.ActiveCfg = Release|x64
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Release|x64.Build.0 = Release|x64
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Release|x86.ActiveCfg = Release|Win32
+		{F241A5AB-AA9C-4DFB-A7DA-876BDBFCDE2F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

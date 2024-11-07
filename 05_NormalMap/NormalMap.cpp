@@ -1,4 +1,4 @@
-ï»¿#include "BlinnPhong.h"
+#include "NormalMap.h"
 #include "..\\Engine\\Helper.h"
 #include <d3dcompiler.h>
 #include <imgui.h>
@@ -9,10 +9,20 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
 
-// ì •ì  ì„ ì–¸.
+/*
+1. Vertex FormatÀ» 3DÁÂÇ¥, ÅØ½ºÃ³ÁÂÇ¥,T B N º¤ÅÍ ·Î ±¸¼ºÇÕ´Ï´Ù.
+2. Ãß°¡ Normal Texture¸¦ PixelShader¿¡¼­ »ç¿ëÇÒ ¼ö ÀÖµµ·Ï C++¿¡ SRV , HLSL¿¡ Texture2D ¸¦ Ãß°¡ÇÕ´Ï´Ù.
+3. Diffuse Texture, Normal Texture ¸¦ Àû¿ëÇÕ´Ï´Ù.
+4. Ãß°¡ Specular Texture¸¦ PixelShader¿¡¼­ »ç¿ëÇÒ ¼ö ÀÖµµ·Ï C++¿¡ SRV , HLSL¿¡ Texture2D ¸¦ Ãß°¡ÇÕ´Ï´Ù.
+5. Specular Texture ¸¦ Àû¿ëÇÕ´Ï´Ù.
+*/
+
+// Á¤Á¡ ¼±¾ğ.
 struct Vertex
 {
-	Vector3 Pos;		// ì •ì  ìœ„ì¹˜ ì •ë³´.
+	Vector3 Pos;
+	Vector3 Tangent;
+	Vector3 Binormal;
 	Vector3 Normal;
 	Vector2 Tex;
 };
@@ -34,7 +44,7 @@ struct ConstantBuffer
 	float fMaterialSpecularPower;
 };
 
-BlinnPhong::BlinnPhong(HINSTANCE hInstance)
+NormalMap::NormalMap(HINSTANCE hInstance)
 	:GameApp(hInstance)
 	, m_LightDirection(0.0f, 0.0f, 1.0f)
 	, m_LightAmbient(0.5f, 0.5f, 0.5f, 1.0f)
@@ -50,13 +60,13 @@ BlinnPhong::BlinnPhong(HINSTANCE hInstance)
 
 }
 
-BlinnPhong::~BlinnPhong()
+NormalMap::~NormalMap()
 {
 	UninitScene();
 	UninitD3D();
 }
 
-bool BlinnPhong::Initialize(UINT Width, UINT Height)
+bool NormalMap::Initialize(UINT Width, UINT Height)
 {
 	__super::Initialize(Width, Height);
 
@@ -72,29 +82,29 @@ bool BlinnPhong::Initialize(UINT Width, UINT Height)
 	return true;
 }
 
-void BlinnPhong::Update()
+void NormalMap::Update()
 {
 	__super::Update();
 
 	float t = GameTimer::m_Instance->TotalTime();
 
-	// íë¸Œ íšŒì „ í–‰ë ¬
+	// Å¥ºê È¸Àü Çà·Ä
 	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(
 		XMConvertToRadians(m_CubeRotation.x),
 		XMConvertToRadians(m_CubeRotation.y),
 		XMConvertToRadians(m_CubeRotation.z));
 
-	// íë¸Œ ìŠ¤ì¼€ì¼ í–‰ë ¬
+	// Å¥ºê ½ºÄÉÀÏ Çà·Ä
 	XMMATRIX scaleMatrix = XMMatrixScaling(m_CubeScale.x, m_CubeScale.y, m_CubeScale.z);
 
 	m_World = scaleMatrix * rotationMatrix;
 
-	// ì¹´ë©”ë¼ ìœ„ì¹˜ ê³„ì‚° (View í–‰ë ¬ì˜ ì—­í–‰ë ¬ì—ì„œ ì¶”ì¶œ)
+	// Ä«¸Ş¶ó À§Ä¡ °è»ê (View Çà·ÄÀÇ ¿ªÇà·Ä¿¡¼­ ÃßÃâ)
 	XMVECTOR determinant;
 	XMMATRIX invView = XMMatrixInverse(&determinant, m_View);
 	XMVECTOR cameraPos = invView.r[3];
 
-	// ì›”ë“œ ê³µê°„ì—ì„œì˜ ì¹´ë©”ë¼ ìœ„ì¹˜
+	// ¿ùµå °ø°£¿¡¼­ÀÇ Ä«¸Ş¶ó À§Ä¡
 	XMStoreFloat3(&m_ViewDirEvaluated, XMVector3Normalize(cameraPos));
 
 	m_View = XMMatrixLookAtLH(
@@ -103,7 +113,7 @@ void BlinnPhong::Update()
 		XMVectorSet(0, 1, 0, 0));
 }
 
-void BlinnPhong::Render()
+void NormalMap::Render()
 {
 	float color[4] = { 0.0f, 0.5f, 0.5f, 1.0f };
 
@@ -123,6 +133,31 @@ void BlinnPhong::Render()
 	m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
 	m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
+	// Normal On/Off
+	if (m_bNormalMapEnabled)
+	{
+		m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);  // Bind the normal map
+	}
+	else
+	{
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  // Unbind the normal map
+	}
+
+	// SpecularMap On/Off
+	if (m_bSpecularMapEnabled)
+	{
+		m_pDeviceContext->PSSetShaderResources(2, 1, &m_pSpecularTextureRV);  // Bind the normal map
+	}
+	else
+	{
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  // Unbind the normal map
+	}
+
+	m_pDeviceContext->PSSetSamplers(1, 1, &m_pSamplerLinear);
+	m_pDeviceContext->PSSetSamplers(2, 1, &m_pSamplerLinear);
+
 	// Update matrix variables and lighting variables
 	ConstantBuffer cb1;
 	cb1.mWorld = XMMatrixTranspose(m_World);
@@ -141,14 +176,14 @@ void BlinnPhong::Render()
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	 // Calculate the light transformation matrix
-	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat3(&m_LightDirection)); // ì¡°ëª… ë°©í–¥ì— ë§ê²Œ ìœ„ì¹˜ ì¡°ì •
-	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f); // ìŠ¤ì¼€ì¼ ì„¤ì •
+	// Calculate the light transformation matrix
+	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat3(&m_LightDirection)); // Á¶¸í ¹æÇâ¿¡ ¸Â°Ô À§Ä¡ Á¶Á¤
+	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f); // ½ºÄÉÀÏ ¼³Á¤
 	mLight = mLightScale * mLight;
 
 	// Update the world variable to reflect the current light
 	cb1.mWorld = XMMatrixTranspose(mLight);
-	//cb1.vOutputColor = m_LightDiffuse; // í˜„ì¬ ì¡°ëª…ì˜ ìƒ‰ìƒ ì ìš©
+	//cb1.vOutputColor = m_LightDiffuse; // ÇöÀç Á¶¸íÀÇ »ö»ó Àû¿ë
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
 	// Set the pixel shader for solid color rendering
@@ -160,31 +195,35 @@ void BlinnPhong::Render()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// ImGui ì°½ ì‹œì‘
+	// ImGui Ã¢ ½ÃÀÛ
 	ImGui::Begin("Cube and Light");
 
-	// ë¼ì´íŠ¸ ì¡°ì •
+	// ¶óÀÌÆ® Á¶Á¤
 	ImGui::Text("Light Properties");
 	ImGui::SliderFloat3("Light Direction", &m_LightDirection.x, -1.0f, 1.0f);
 	ImGui::ColorEdit3("Light Ambient", &m_LightAmbient.x);
 	ImGui::ColorEdit3("Light Diffuse", &m_LightDiffuse.x);
 	ImGui::ColorEdit3("Light Specular", &m_LightSpecular.x);
 
-	// Material ì¡°ì •
+	// Material Á¶Á¤
 	ImGui::Text("Material Properties");
 	ImGui::ColorEdit3("Material Ambient", &m_MaterialAmbient.x);
 	ImGui::ColorEdit3("Material Diffuse", &m_MaterialDiffuse.x);
 	ImGui::ColorEdit3("Material Specular", &m_MaterialSpecular.x);
 	ImGui::SliderFloat("Material Specular Power", &m_MaterialSpecularPower, 2.0f, 4096.0f);
 
-	// íë¸Œ ì¡°ì •
+	// Å¥ºê Á¶Á¤
 	ImGui::Text("Cube Properties");
 	ImGui::SliderFloat3("Cube Scale", &m_CubeScale.x, 0.1f, 2.0f);
 	ImGui::SliderFloat3("Cube Rotation", &m_CubeRotation.x, 0.0f, 360.0f);
 
-	// ì¹´ë©”ë¼ ì¡°ì •
+	// Ä«¸Ş¶ó Á¶Á¤
 	ImGui::Text("Camera Position");
 	ImGui::SliderFloat3("Camera Position", &m_CameraPos.x, -10.0f, 10.0f);
+
+	ImGui::Checkbox("Enable Normal Map", &m_bNormalMapEnabled);
+	ImGui::Checkbox("Enable Specular Map", &m_bSpecularMapEnabled);
+
 
 	ImGui::End();
 	ImGui::Render();
@@ -194,24 +233,24 @@ void BlinnPhong::Render()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool BlinnPhong::InitD3D()
+bool NormalMap::InitD3D()
 {
-	HRESULT hr = 0;	// ê²°ê³¼ê°’.
+	HRESULT hr = 0;	// °á°ú°ª.
 
-	// ìŠ¤ì™‘ì²´ì¸ ì†ì„± ì„¤ì • êµ¬ì¡°ì²´ ìƒì„±.
+	// ½º¿ÒÃ¼ÀÎ ¼Ó¼º ¼³Á¤ ±¸Á¶Ã¼ »ı¼º.
 	DXGI_SWAP_CHAIN_DESC swapDesc = {};
 	swapDesc.BufferCount = 1;
 	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapDesc.OutputWindow = m_hWnd;	// ìŠ¤ì™‘ì²´ì¸ ì¶œë ¥í•  ì°½ í•¸ë“¤ ê°’.
-	swapDesc.Windowed = true;		// ì°½ ëª¨ë“œ ì—¬ë¶€ ì„¤ì •.
+	swapDesc.OutputWindow = m_hWnd;	// ½º¿ÒÃ¼ÀÎ Ãâ·ÂÇÒ Ã¢ ÇÚµé °ª.
+	swapDesc.Windowed = true;		// Ã¢ ¸ğµå ¿©ºÎ ¼³Á¤.
 	swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	// ë°±ë²„í¼(í…ìŠ¤ì²˜)ì˜ ê°€ë¡œ/ì„¸ë¡œ í¬ê¸° ì„¤ì •.
+	// ¹é¹öÆÛ(ÅØ½ºÃ³)ÀÇ °¡·Î/¼¼·Î Å©±â ¼³Á¤.
 	swapDesc.BufferDesc.Width = m_ClientWidth;
 	swapDesc.BufferDesc.Height = m_ClientHeight;
-	// í™”ë©´ ì£¼ì‚¬ìœ¨ ì„¤ì •.
+	// È­¸é ÁÖ»çÀ² ¼³Á¤.
 	swapDesc.BufferDesc.RefreshRate.Numerator = 60;
 	swapDesc.BufferDesc.RefreshRate.Denominator = 1;
-	// ìƒ˜í”Œë§ ê´€ë ¨ ì„¤ì •.
+	// »ùÇÃ¸µ °ü·Ã ¼³Á¤.
 	swapDesc.SampleDesc.Count = 1;
 	swapDesc.SampleDesc.Quality = 0;
 
@@ -219,19 +258,19 @@ bool BlinnPhong::InitD3D()
 #ifdef _DEBUG
 	creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
-	// 1. ì¥ì¹˜ ìƒì„±.   2.ìŠ¤ì™‘ì²´ì¸ ìƒì„±. 3.ì¥ì¹˜ ì»¨í…ìŠ¤íŠ¸ ìƒì„±.
+	// 1. ÀåÄ¡ »ı¼º.   2.½º¿ÒÃ¼ÀÎ »ı¼º. 3.ÀåÄ¡ ÄÁÅØ½ºÆ® »ı¼º.
 	HR_T(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, NULL, NULL,
 		D3D11_SDK_VERSION, &swapDesc, &m_pSwapChain, &m_pDevice, NULL, &m_pDeviceContext));
 
-	// 4. ë Œë”íƒ€ê²Ÿë·° ìƒì„±.  (ë°±ë²„í¼ë¥¼ ì´ìš©í•˜ëŠ” ë Œë”íƒ€ê²Ÿë·°)	
+	// 4. ·»´õÅ¸°Ùºä »ı¼º.  (¹é¹öÆÛ¸¦ ÀÌ¿ëÇÏ´Â ·»´õÅ¸°Ùºä)	
 	ID3D11Texture2D* pBackBufferTexture = nullptr;
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // í…ìŠ¤ì²˜ëŠ” ë‚´ë¶€ ì°¸ì¡° ì¦ê°€
-	SAFE_RELEASE(pBackBufferTexture);	//ì™¸ë¶€ ì°¸ì¡° ì¹´ìš´íŠ¸ë¥¼ ê°ì†Œì‹œí‚¨ë‹¤.
-	// ë Œë” íƒ€ê²Ÿì„ ìµœì¢… ì¶œë ¥ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•©ë‹ˆë‹¤.
+	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture, NULL, &m_pRenderTargetView));  // ÅØ½ºÃ³´Â ³»ºÎ ÂüÁ¶ Áõ°¡
+	SAFE_RELEASE(pBackBufferTexture);	//¿ÜºÎ ÂüÁ¶ Ä«¿îÆ®¸¦ °¨¼Ò½ÃÅ²´Ù.
+	// ·»´õ Å¸°ÙÀ» ÃÖÁ¾ Ãâ·Â ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÕ´Ï´Ù.
 	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
 
-	//5. ë·°í¬íŠ¸ ì„¤ì •.	
+	//5. ºäÆ÷Æ® ¼³Á¤.	
 	D3D11_VIEWPORT viewport = {};
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
@@ -241,7 +280,7 @@ bool BlinnPhong::InitD3D()
 	viewport.MaxDepth = 1.0f;
 	m_pDeviceContext->RSSetViewports(1, &viewport);
 
-	//6. ëŠìŠ¤&ìŠ¤í…ì‹¤ ë·° ìƒì„±
+	//6. ‰X½º&½ºÅÙ½Ç ºä »ı¼º
 	D3D11_TEXTURE2D_DESC descDepth = {};
 	descDepth.Width = m_ClientWidth;
 	descDepth.Height = m_ClientHeight;
@@ -271,7 +310,7 @@ bool BlinnPhong::InitD3D()
 	return true;
 }
 
-void BlinnPhong::UninitD3D()
+void NormalMap::UninitD3D()
 {
 	SAFE_RELEASE(m_pDevice);
 	SAFE_RELEASE(m_pDeviceContext);
@@ -279,10 +318,10 @@ void BlinnPhong::UninitD3D()
 	SAFE_RELEASE(m_pRenderTargetView);
 }
 
-bool BlinnPhong::InitImGUI()
+bool NormalMap::InitImGUI()
 {
 	/*
-		ImGui ì´ˆê¸°í™”.
+		ImGui ÃÊ±âÈ­.
 	*/
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -299,7 +338,7 @@ bool BlinnPhong::InitImGUI()
 	return true;
 }
 
-void BlinnPhong::UninitImGUI()
+void NormalMap::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -309,7 +348,7 @@ void BlinnPhong::UninitImGUI()
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT CALLBACK BlinnPhong::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK NormalMap::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
@@ -317,60 +356,60 @@ LRESULT CALLBACK BlinnPhong::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	return __super::WndProc(hWnd, message, wParam, lParam);
 }
 
-// 1. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ë²„í…ìŠ¤ ë²„í¼ë° ë²„í¼ ì •ë³´ ì¤€ë¹„
-// 2. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  InputLayout ìƒì„± 	
-// 3. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•   ë²„í…ìŠ¤ ì…°ì´ë” ìƒì„±
-// 4. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ì¸ë±ìŠ¤ ë²„í¼ ìƒì„±
-// 5. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  í”½ì…€ ì…°ì´ë” ìƒì„±
-// 6. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ìƒìˆ˜ ë²„í¼ ìƒì„±
-bool BlinnPhong::InitScene()
+// 1. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ¹öÅØ½º ¹öÆÛ¹× ¹öÆÛ Á¤º¸ ÁØºñ
+// 2. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ InputLayout »ı¼º 	
+// 3. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ  ¹öÅØ½º ¼ÎÀÌ´õ »ı¼º
+// 4. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÀÎµ¦½º ¹öÆÛ »ı¼º
+// 5. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÇÈ¼¿ ¼ÎÀÌ´õ »ı¼º
+// 6. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ »ó¼ö ¹öÆÛ »ı¼º
+bool NormalMap::InitScene()
 {
-	HRESULT hr = 0; // ê²°ê³¼ê°’.
-	ID3D10Blob* errorMessage = nullptr;	 // ì—ëŸ¬ ë©”ì‹œì§€ë¥¼ ì €ì¥í•  ë²„í¼.
+	HRESULT hr = 0; // °á°ú°ª.
+	ID3D10Blob* errorMessage = nullptr;	 // ¿¡·¯ ¸Ş½ÃÁö¸¦ ÀúÀåÇÒ ¹öÆÛ.
 
-	// 1. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ë²„í…ìŠ¤ ë²„í¼ë° ë²„í¼ ì •ë³´ ì¤€ë¹„
+	// 1. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ¹öÅØ½º ¹öÆÛ¹× ¹öÆÛ Á¤º¸ ÁØºñ
 	// Local or Object or Model Space
+	// Position, Tangent, Binormal, Normal, Texcoord
 	Vertex vertices[] =
 	{
 		// Top face (y = +1)
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f)},
+		{ Vector3(1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Bottom face (y = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Left face (x = -1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Right face (x = +1)
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Front face (z = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
 
 		// Back face (z = +1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) }
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
 	};
 
-
-	// ë²„í…ìŠ¤ ë²„í¼ ìƒì„±.
+	// ¹öÅØ½º ¹öÆÛ »ı¼º.
 	D3D11_BUFFER_DESC bd = {};
 	bd.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -381,17 +420,19 @@ bool BlinnPhong::InitScene()
 	vbData.pSysMem = vertices;
 	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer));
 
-	// ë²„í…ìŠ¤ ë²„í¼ ë°”ì¸ë”©.
+	// ¹öÅØ½º ¹öÆÛ ¹ÙÀÎµù.
 	m_VertexBufferStride = sizeof(Vertex);
 	m_VertexBufferOffset = 0;
 
 
-	// 2. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  InputLayout ìƒì„± 	
+	// 2. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ InputLayout »ı¼º 	
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ID3D10Blob* vertexShaderBuffer = nullptr;
@@ -399,13 +440,13 @@ bool BlinnPhong::InitScene()
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
 		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
 
-	// 3. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•   ë²„í…ìŠ¤ ì…°ì´ë” ìƒì„±
+	// 3. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ  ¹öÅØ½º ¼ÎÀÌ´õ »ı¼º
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(),
 		vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
 
 	SAFE_RELEASE(vertexShaderBuffer);
 
-	// 4. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ì¸ë±ìŠ¤ ë²„í¼ ìƒì„±
+	// 4. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÀÎµ¦½º ¹öÆÛ »ı¼º
 	WORD indices[] =
 	{
 		3,1,0, 2,1,3,
@@ -416,7 +457,7 @@ bool BlinnPhong::InitScene()
 		22,20,21, 23,20,22
 	};
 
-	// ì¸ë±ìŠ¤ ê°œìˆ˜ ì €ì¥.
+	// ÀÎµ¦½º °³¼ö ÀúÀå.
 	m_nIndices = ARRAYSIZE(indices);
 
 	bd = {};
@@ -428,28 +469,29 @@ bool BlinnPhong::InitScene()
 	ibData.pSysMem = indices;
 	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, &m_pIndexBuffer));
 
-	// 5. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  í”½ì…€ ì…°ì´ë” ìƒì„±
+	// 5. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ ÇÈ¼¿ ¼ÎÀÌ´õ »ı¼º
 	ID3D10Blob* pixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),
 		pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
 	SAFE_RELEASE(pixelShaderBuffer);
 
-	//// What Difference? (Between Solid and Basic)
-	//HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	//HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),
-	//	pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShaderSolid));
-	//SAFE_RELEASE(pixelShaderBuffer);
-
-	// 6. Render() ì—ì„œ íŒŒì´í”„ë¼ì¸ì— ë°”ì¸ë”©í•  ìƒìˆ˜ ë²„í¼ ìƒì„±	
+	// 6. Render() ¿¡¼­ ÆÄÀÌÇÁ¶óÀÎ¿¡ ¹ÙÀÎµùÇÒ »ó¼ö ¹öÆÛ »ı¼º	
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(ConstantBuffer);
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
 
+
 	// Load the Texture
-	HR_T(CreateDDSTextureFromFile(m_pDevice, L"seafloor.dds", nullptr, &m_pTextureRV));
+	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_1K-JPG_Color.dds", nullptr, &m_pTextureRV));
+
+	// Normal
+	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_1K-JPG_NormalDX.dds", nullptr, &m_pNormalTextureRV));
+
+	// Specular
+	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_Specular.dds", nullptr, &m_pSpecularTextureRV));
 
 	// Create the sample state
 	D3D11_SAMPLER_DESC sampDesc = {};
@@ -462,9 +504,9 @@ bool BlinnPhong::InitScene()
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_pDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear));
 
-	// TODO : Shader ìˆ˜ì •í•˜ê³  Render ìˆ˜ì •í•˜ê³  Vertexì— TexCoord ë„£ê³ 
+	// TODO : Shader ¼öÁ¤ÇÏ°í Render ¼öÁ¤ÇÏ°í Vertex¿¡ TexCoord ³Ö°í
 
-	// ì´ˆê¸°ê°’ì„¤ì •
+	// ÃÊ±â°ª¼³Á¤
 	m_World = XMMatrixIdentity();
 
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);
@@ -475,7 +517,7 @@ bool BlinnPhong::InitScene()
 	return true;
 }
 
-void BlinnPhong::UninitScene()
+void NormalMap::UninitScene()
 {
 	SAFE_RELEASE(m_pVertexBuffer);
 	SAFE_RELEASE(m_pVertexShader);
