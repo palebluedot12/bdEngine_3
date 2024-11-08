@@ -10,7 +10,7 @@
 #pragma comment(lib,"d3dcompiler.lib")
 
 /*
-1. Vertex Format을 3D좌표, 텍스처좌표,T B N 벡터 로 구성합니다.
+1. Vertex Format을 3D좌표, 텍스처좌표, T B N 벡터 로 구성합니다.
 2. 추가 Normal Texture를 PixelShader에서 사용할 수 있도록 C++에 SRV , HLSL에 Texture2D 를 추가합니다.
 3. Diffuse Texture, Normal Texture 를 적용합니다.
 4. 추가 Specular Texture를 PixelShader에서 사용할 수 있도록 C++에 SRV , HLSL에 Texture2D 를 추가합니다.
@@ -47,7 +47,7 @@ struct ConstantBuffer
 NormalMap::NormalMap(HINSTANCE hInstance)
 	:GameApp(hInstance)
 	, m_LightDirection(0.0f, 0.0f, 1.0f)
-	, m_LightAmbient(0.5f, 0.5f, 0.5f, 1.0f)
+	, m_LightAmbient(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
@@ -105,7 +105,7 @@ void NormalMap::Update()
 	XMVECTOR cameraPos = invView.r[3];
 
 	// 월드 공간에서의 카메라 위치
-	XMStoreFloat3(&m_ViewDirEvaluated, XMVector3Normalize(cameraPos));
+	XMStoreFloat3(&m_ViewDirEvaluated, cameraPos);
 
 	m_View = XMMatrixLookAtLH(
 		XMLoadFloat3(&m_CameraPos),
@@ -136,23 +136,23 @@ void NormalMap::Render()
 	// Normal On/Off
 	if (m_bNormalMapEnabled)
 	{
-		m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);  // Bind the normal map
+		m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);
 	}
 	else
 	{
 		ID3D11ShaderResourceView* nullSRV = nullptr;
-		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  // Unbind the normal map
+		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  
 	}
 
 	// SpecularMap On/Off
 	if (m_bSpecularMapEnabled)
 	{
-		m_pDeviceContext->PSSetShaderResources(2, 1, &m_pSpecularTextureRV);  // Bind the normal map
+		m_pDeviceContext->PSSetShaderResources(2, 1, &m_pSpecularTextureRV);  
 	}
 	else
 	{
 		ID3D11ShaderResourceView* nullSRV = nullptr;
-		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  // Unbind the normal map
+		m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);  
 	}
 
 	m_pDeviceContext->PSSetSamplers(1, 1, &m_pSamplerLinear);
@@ -186,9 +186,9 @@ void NormalMap::Render()
 	//cb1.vOutputColor = m_LightDiffuse; // 현재 조명의 색상 적용
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
-	// Set the pixel shader for solid color rendering
-	m_pDeviceContext->PSSetShader(m_pPixelShaderSolid, nullptr, 0);
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	//// Set the pixel shader for solid color rendering
+	//m_pDeviceContext->PSSetShader(m_pPixelShaderSolid, nullptr, 0);
+	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
@@ -429,9 +429,9 @@ bool NormalMap::InitScene()
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
@@ -483,7 +483,6 @@ bool NormalMap::InitScene()
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
 
-
 	// Load the Texture
 	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_1K-JPG_Color.dds", nullptr, &m_pTextureRV));
 
@@ -503,8 +502,6 @@ bool NormalMap::InitScene()
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	HR_T(m_pDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear));
-
-	// TODO : Shader 수정하고 Render 수정하고 Vertex에 TexCoord 넣고
 
 	// 초기값설정
 	m_World = XMMatrixIdentity();
