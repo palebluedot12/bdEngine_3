@@ -143,7 +143,7 @@ void BlinnPhong::Render()
 
 	 // Calculate the light transformation matrix
 	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat3(&m_LightDirection)); // 조명 방향에 맞게 위치 조정
-	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f); // 스케일 설정
+	XMMATRIX mLightScale = XMMatrixScaling(0.01f, 0.01f, 0.01f); // 스케일 설정
 	mLight = mLightScale * mLight;
 
 	// Update the world variable to reflect the current light

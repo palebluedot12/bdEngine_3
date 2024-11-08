@@ -16,7 +16,6 @@ float4 main(PS_INPUT input) : SV_Target
     float3 normalFromMap = txNormal.Sample(samLinear, input.Tex).rgb * 2 - 1;
     normal = normalize(mul(normalFromMap, float3x3(tangent, binormal, normal)));
     
-    
     float3 viewDir = normalize(vCameraPos - input.WorldPos.xyz);
     float3 lightDir = normalize(-vLightDir.xyz);
     float3 halfVector = normalize(lightDir + viewDir);
@@ -34,6 +33,6 @@ float4 main(PS_INPUT input) : SV_Target
 
     float3 finalColor = ambient + diffuse + specular;
     
-    return texColor * float4(finalColor, 1);
+    return texColor * float4(finalColor, 1); 
 }
 
