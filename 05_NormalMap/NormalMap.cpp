@@ -22,7 +22,7 @@ struct Vertex
 {
 	Vector3 Pos;
 	Vector3 Tangent;
-	Vector3 Binormal;
+	//Vector3 Binormal;
 	Vector3 Normal;
 	Vector2 Tex;
 };
@@ -47,7 +47,7 @@ struct ConstantBuffer
 NormalMap::NormalMap(HINSTANCE hInstance)
 	:GameApp(hInstance)
 	, m_LightDirection(0.0f, 0.0f, 1.0f)
-	, m_LightAmbient(0.5f, 0.5f, 0.5f, 1.0f)
+	, m_LightAmbient(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
@@ -105,7 +105,7 @@ void NormalMap::Update()
 	XMVECTOR cameraPos = invView.r[3];
 
 	// 월드 공간에서의 카메라 위치
-	XMStoreFloat3(&m_ViewDirEvaluated, XMVector3Normalize(cameraPos));
+	XMStoreFloat3(&m_ViewDirEvaluated, cameraPos);
 
 	m_View = XMMatrixLookAtLH(
 		XMLoadFloat3(&m_CameraPos),
@@ -152,11 +152,11 @@ void NormalMap::Render()
 	else
 	{
 		ID3D11ShaderResourceView* nullSRV = nullptr;
-		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  // Unbind the normal map
+		m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);  // Unbind the normal map
 	}
 
-	m_pDeviceContext->PSSetSamplers(1, 1, &m_pSamplerLinear);
-	m_pDeviceContext->PSSetSamplers(2, 1, &m_pSamplerLinear);
+	//m_pDeviceContext->PSSetSamplers(1, 1, &m_pSamplerLinear);
+	//m_pDeviceContext->PSSetSamplers(2, 1, &m_pSamplerLinear);
 
 	// Update matrix variables and lighting variables
 	ConstantBuffer cb1;
@@ -369,44 +369,44 @@ bool NormalMap::InitScene()
 
 	// 1. Render() 에서 파이프라인에 바인딩할 버텍스 버퍼및 버퍼 정보 준비
 	// Local or Object or Model Space
-	// Position, Tangent, Binormal, Normal, Texcoord
+	// Position, Tangent, Normal, Texcoord
 	Vertex vertices[] =
 	{
 		// Top face (y = +1)
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f)},
-		{ Vector3(1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f)},
+		{ Vector3(1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Bottom face (y = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Left face (x = -1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Right face (x = +1)
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Front face (z = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
 
 		// Back face (z = +1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
 	};
 
 	// 버텍스 버퍼 생성.
@@ -431,8 +431,7 @@ bool NormalMap::InitScene()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ID3D10Blob* vertexShaderBuffer = nullptr;

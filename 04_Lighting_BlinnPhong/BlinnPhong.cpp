@@ -37,7 +37,7 @@ struct ConstantBuffer
 BlinnPhong::BlinnPhong(HINSTANCE hInstance)
 	:GameApp(hInstance)
 	, m_LightDirection(0.0f, 0.0f, 1.0f)
-	, m_LightAmbient(0.5f, 0.5f, 0.5f, 1.0f)
+	, m_LightAmbient(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
@@ -95,7 +95,7 @@ void BlinnPhong::Update()
 	XMVECTOR cameraPos = invView.r[3];
 
 	// 월드 공간에서의 카메라 위치
-	XMStoreFloat3(&m_ViewDirEvaluated, XMVector3Normalize(cameraPos));
+	XMStoreFloat3(&m_ViewDirEvaluated, cameraPos);
 
 	m_View = XMMatrixLookAtLH(
 		XMLoadFloat3(&m_CameraPos),

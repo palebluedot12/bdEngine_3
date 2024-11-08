@@ -15,8 +15,8 @@ Texture2D txNormal : register(t1);
 Texture2D txSpecular : register(t2);
 
 SamplerState samLinear : register(s0);
-SamplerState samNormal : register(s1);
-SamplerState samSpecular : register(s2);
+//SamplerState samNormal : register(s1);
+//SamplerState samSpecular : register(s2);
 
 cbuffer ConstantBuffer : register(b0)
 {
@@ -42,7 +42,6 @@ struct VS_INPUT
 {
     float4 Pos : POSITION;
     float3 Tangent : TANGENT;
-    float3 BiNormal : BINORMAL;
     float3 Norm : NORMAL;
     float2 Tex : TEXCOORD;
 };
@@ -51,7 +50,6 @@ struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
     float3 Tangent : TANGENT;
-    float3 BiNormal : BINORMAL;
     float3 Norm : NORMAL;
     float2 Tex : TEXCOORD;
     float4 WorldPos : TEXCOORD1;
