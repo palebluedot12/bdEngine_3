@@ -8,6 +8,14 @@
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
 
+struct BoolBuffer
+{
+	bool useNormalMap;
+	Vector3 pad1;
+	bool useSpecular;
+	Vector3 pad2;
+};
+
 class NormalMap :
 	public GameApp
 {
@@ -33,6 +41,9 @@ public:
 	ID3D11Buffer* m_pIndexBuffer = nullptr;						// 버텍스 버퍼.
 	int m_nIndices = 0;											// 인덱스 개수.
 	ID3D11Buffer* m_pConstantBuffer = nullptr;					// 상수 버퍼.
+	ID3D11Buffer* m_pBoolBuffer = nullptr;						// Boolean 버퍼.
+	BoolBuffer boolbuffer;
+
 	ID3D11ShaderResourceView* m_pTextureRV = nullptr;			// 텍스처 리소스 뷰.
 	ID3D11ShaderResourceView* m_pNormalTextureRV = nullptr;		// 노말맵 텍스처 리소스 뷰.
 	ID3D11ShaderResourceView* m_pSpecularTextureRV = nullptr;	// 스페큘러맵 텍스처 리소스 뷰.

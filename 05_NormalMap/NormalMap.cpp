@@ -22,7 +22,6 @@ struct Vertex
 {
 	Vector3 Pos;
 	Vector3 Tangent;
-	//Vector3 Binormal;
 	Vector3 Normal;
 	Vector2 Tex;
 };
@@ -128,22 +127,17 @@ void NormalMap::Render()
 	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 	m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	m_pDeviceContext->VSSetConstantBuffers(1, 1, &m_pBoolBuffer);
 	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	m_pDeviceContext->PSSetConstantBuffers(1, 1, &m_pBoolBuffer);
 	m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
 	m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
 	// Normal On/Off
-	if (m_bNormalMapEnabled)
-	{
-		m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);
-	}
-	else
-	{
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);  
-	}
-
+	// On/Off 여기서 처리하지 않고 Pixel Shader에서 하는 방식으로 변경
+	m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);
+	
 	// SpecularMap On/Off
 	if (m_bSpecularMapEnabled)
 	{
@@ -152,7 +146,7 @@ void NormalMap::Render()
 	else
 	{
 		ID3D11ShaderResourceView* nullSRV = nullptr;
-		m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);  // Unbind the normal map
+		m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);  // Unbind the specular map
 	}
 
 	//m_pDeviceContext->PSSetSamplers(1, 1, &m_pSamplerLinear);
@@ -173,6 +167,7 @@ void NormalMap::Render()
 	cb1.fMaterialSpecularPower = m_MaterialSpecularPower;
 	cb1.vCameraPos = m_ViewDirEvaluated;
 
+	m_pDeviceContext->UpdateSubresource(m_pBoolBuffer, 0, nullptr, &boolbuffer, 0, 0);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
@@ -221,7 +216,7 @@ void NormalMap::Render()
 	ImGui::Text("Camera Position");
 	ImGui::SliderFloat3("Camera Position", &m_CameraPos.x, -10.0f, 10.0f);
 
-	ImGui::Checkbox("Enable Normal Map", &m_bNormalMapEnabled);
+	ImGui::Checkbox("Enable Normal Map", &boolbuffer.useNormalMap);
 	ImGui::Checkbox("Enable Specular Map", &m_bSpecularMapEnabled);
 
 
@@ -373,28 +368,28 @@ bool NormalMap::InitScene()
 	Vertex vertices[] =
 	{
 		// Top face (y = +1)
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f)},
-		{ Vector3(1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),   Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Bottom face (y = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Left face (x = -1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(0.0f, 0.0f, -1.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Right face (x = +1)
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(0.0f, 0.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
 
 		// Front face (z = -1)
 		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
@@ -403,10 +398,10 @@ bool NormalMap::InitScene()
 		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
 
 		// Back face (z = +1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
 	};
 
 	// 버텍스 버퍼 생성.
@@ -429,8 +424,8 @@ bool NormalMap::InitScene()
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
@@ -481,6 +476,9 @@ bool NormalMap::InitScene()
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
+
+	bd.ByteWidth = sizeof(BoolBuffer);
+	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pBoolBuffer));
 
 	// Load the Texture
 	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_1K-JPG_Color.dds", nullptr, &m_pTextureRV));

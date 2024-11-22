@@ -32,9 +32,16 @@ cbuffer ConstantBuffer : register(b0)
     float4 vMaterialDiffuse;
     float4 vMaterialSpecular;
     float3 vCameraPos;
-    float fMaterialSpecularPower;
-}
+    float fMaterialSpecularPower; 
+};
 
+cbuffer BoolBuffer : register(b1)
+{
+    bool useNormalMap;
+    float3 padN;
+    bool useSpecular;
+    float3 padS;
+}
 // POSITION, TANGENT, BINORMAL, NORMAL, TEXCOORD.... => semantic
 // semantic은 GPU에게 해당 변수가 어떤 역할을 하는지 알려주는 역할을 함.
 // https://learn.microsoft.com/ko-kr/windows/win32/direct3dhlsl/dx-graphics-hlsl-semantics
