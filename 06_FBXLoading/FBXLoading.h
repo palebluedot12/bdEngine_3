@@ -15,12 +15,12 @@ struct BoolBuffer
 	Vector3 pad2;
 };
 
-class NormalMap :
+class FBXLoading :
 	public GameApp
 {
 public:
-	NormalMap(HINSTANCE hInstance);
-	~NormalMap();
+	FBXLoading(HINSTANCE hInstance);
+	~FBXLoading();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체의 인터페이스 
 	ID3D11Device* m_pDevice = nullptr;						// 디바이스	
