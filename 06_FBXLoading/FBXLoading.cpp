@@ -14,7 +14,7 @@
 #pragma comment(lib,"d3dcompiler.lib")
 
 /*
-TODO : 
+TODO : 1. fbx 띄우기 2. 파일 분리
 */
 
 // 정점 선언.
@@ -362,6 +362,7 @@ bool FBXLoading::InitScene()
 	HRESULT hr = 0; // 결과값.
 	ID3D10Blob* errorMessage = nullptr;	 // 에러 메시지를 저장할 버퍼.
 
+	
 	// 1. Render() 에서 파이프라인에 바인딩할 버텍스 버퍼및 버퍼 정보 준비
 	// Local or Object or Model Space
 	// Position, Tangent, Normal, Texcoord
