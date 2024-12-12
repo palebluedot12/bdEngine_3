@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GL\glew.h>
+//#include <GL\glew.h>
 
 #include "stb_image.h"
 
@@ -24,7 +24,7 @@ public:
 	~Texture();
 
 private:
-	GLuint textureID;
+	int textureID;
 	int width, height, bitDepth;
 
 	const char* fileLocation;

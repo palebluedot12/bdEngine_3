@@ -16,6 +16,9 @@
     <Filter Include="소스 파일\Resource">
       <UniqueIdentifier>{343fb75e-ae26-43b8-be9f-ae388692a633}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Logger">
+      <UniqueIdentifier>{17102eea-23e0-46a5-86d4-b06ea788bc1b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -45,6 +48,12 @@
     <ClInclude Include="Texture.h">
       <Filter>소스 파일\Resource</Filter>
     </ClInclude>
+    <ClInclude Include="ILogger.h">
+      <Filter>소스 파일\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>소스 파일\Logger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -73,6 +82,9 @@
     </ClCompile>
     <ClCompile Include="Texture.cpp">
       <Filter>소스 파일\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>소스 파일\Logger</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

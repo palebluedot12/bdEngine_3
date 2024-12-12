@@ -1,14 +1,15 @@
 ﻿#include "FBXLoading.h"
+#include "..\\Engine\\Logger.h"
 #include "..\\Engine\\Helper.h"
 #include <d3dcompiler.h>
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include <Directxtk/DDSTextureLoader.h>
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <iostream>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -63,11 +64,14 @@ FBXLoading::~FBXLoading()
 {
 	UninitScene();
 	UninitD3D();
+	Logger::shutdown();
 }
 
 bool FBXLoading::Initialize(UINT Width, UINT Height)
 {
 	__super::Initialize(Width, Height);
+
+	Logger::Initialize();
 
 	if (!InitD3D())
 		return false;
@@ -110,6 +114,12 @@ void FBXLoading::Update()
 		XMLoadFloat3(&m_CameraPos),
 		XMVectorSet(0, 0, 0, 1),
 		XMVectorSet(0, 1, 0, 0));
+
+	Logger::default_log_level = LOG_LEVEL::LOG_LEVEL_DEBUG;
+
+	Logger::write("LogFile", "This is a Test.");
+	//Logger::write(std::cout, "This is a debug message.", LOG_LEVEL::LOG_LEVEL_DEBUG);
+	//Logger::write(std::cout, "This is an error message.", LOG_LEVEL::LOG_LEVEL_ERROR);
 }
 
 void FBXLoading::Render()

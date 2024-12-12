@@ -1,3 +1,4 @@
+#include "pch.h"
 #include <iostream>
 #include "Model.h"
 //#include <GL/glew.h>
@@ -10,17 +11,13 @@ void Model::LoadModel(const std::string& fileName)
 
 	Assimp::Importer importer;
 
-	unsigned int importFlags = aiProcess_Triangulate |    // vertex 삼각형 으로 출력
+	unsigned int importFlags = aiProcess_Triangulate |    // vertex 삼각형 으로 출력. quad 등이 나오면 triangle로 쪼갬
 		aiProcess_GenNormals |							  // Normal 정보 생성  
 		aiProcess_GenUVCoords |							  // 텍스처 좌표 생성
 		aiProcess_CalcTangentSpace |					  // 탄젠트 벡터 생성
 		aiProcess_ConvertToLeftHanded;					  // DX용 왼손좌표계 변환
 	//aiProcess_PreTransformVertices					  // 노드의 변환행렬을 적용한 버텍스 생성한다.  *StaticMesh로 처리할때만
 
-
-	// 2번째 인자는 타입이 unsigned int인데, 비트 or 연산을 사용한다.
-	// Triangulate : 폴리곤의 모양을 삼각형으로 통일. quad 등이 나오면 triangle로 쪼갬
-	// FlipUVs : 텍스쳐를 임포트할 때 위 아래를 뒤집음.
 	const aiScene* scene = importer.ReadFile("Resources/" + fileName,
 		importFlags);
 
