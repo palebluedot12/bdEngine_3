@@ -14,36 +14,6 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
 
-/*
-TODO : 1. fbx 띄우기 2. 파일 분리
-*/
-
-// 정점 선언.
-struct Vertex
-{
-	Vector3 Pos;
-	Vector3 Tangent;
-	Vector3 Normal;
-	Vector2 Tex;
-};
-
-struct ConstantBuffer
-{
-	Matrix mWorld;
-	Matrix mView;
-	Matrix mProjection;
-
-	Vector4 vLightDir;
-	Vector4 vLightAmbient;
-	Vector4 vLightDiffuse;
-	Vector4 vLightSpecular;
-	Vector4 vMaterialAmbient;
-	Vector4 vMaterialDiffuse;
-	Vector4 vMaterialSpecular;
-	Vector3 vCameraPos;
-	float fMaterialSpecularPower;
-};
-
 FBXLoading::FBXLoading(HINSTANCE hInstance)
 	:GameApp(hInstance)
 	, m_LightDirection(0.0f, 0.0f, 1.0f)
@@ -54,8 +24,7 @@ FBXLoading::FBXLoading(HINSTANCE hInstance)
 	, m_MaterialDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialSpecularPower(2000.0f)
-	, m_CubeScale(1.0f, 1.0f, 1.0f)
-	, m_CubeRotation(0.0f, 0.0f, 0.0f)
+	, m_bSpecularMapEnabled(true)
 {
 
 }
@@ -91,35 +60,22 @@ void FBXLoading::Update()
 
 	float t = GameTimer::m_Instance->TotalTime();
 
-	// 큐브 회전 행렬
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(
-		XMConvertToRadians(m_CubeRotation.x),
-		XMConvertToRadians(m_CubeRotation.y),
-		XMConvertToRadians(m_CubeRotation.z));
-
-	// 큐브 스케일 행렬
-	XMMATRIX scaleMatrix = XMMatrixScaling(m_CubeScale.x, m_CubeScale.y, m_CubeScale.z);
-
-	m_World = scaleMatrix * rotationMatrix;
-
-	// 카메라 위치 계산 (View 행렬의 역행렬에서 추출)
-	XMVECTOR determinant;
-	XMMATRIX invView = XMMatrixInverse(&determinant, m_View);
-	XMVECTOR cameraPos = invView.r[3];
-
-	// 월드 공간에서의 카메라 위치
-	XMStoreFloat3(&m_ViewDirEvaluated, cameraPos);
-
-	m_View = XMMatrixLookAtLH(
+	XMMATRIX view = XMMatrixLookAtLH(
 		XMLoadFloat3(&m_CameraPos),
 		XMVectorSet(0, 0, 0, 1),
 		XMVectorSet(0, 1, 0, 0));
 
+	// 카메라 위치 계산 (View 행렬의 역행렬에서 추출)
+	XMVECTOR determinant;
+	XMMATRIX invView = XMMatrixInverse(&determinant, view);
+	XMVECTOR cameraPos = invView.r[3];
+	// 월드 공간에서의 카메라 위치
+	XMStoreFloat3(&m_ViewDirEvaluated, cameraPos);
+
+	m_FBXRenderer->SetView(view);
 	Logger::default_log_level = LOG_LEVEL::LOG_LEVEL_DEBUG;
 
-	Logger::write("LogFile", "This is a Test.");
-	//Logger::write(std::cout, "This is a debug message.", LOG_LEVEL::LOG_LEVEL_DEBUG);
-	//Logger::write(std::cout, "This is an error message.", LOG_LEVEL::LOG_LEVEL_ERROR);
+	//Logger::write("LogFile", "This is a Test.");
 }
 
 void FBXLoading::Render()
@@ -130,70 +86,8 @@ void FBXLoading::Render()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// Render the cube
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertexBufferStride, &m_VertexBufferOffset);
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout);
-	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-	m_pDeviceContext->VSSetConstantBuffers(1, 1, &m_pBoolBuffer);
-	m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
-	m_pDeviceContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-	m_pDeviceContext->PSSetConstantBuffers(1, 1, &m_pBoolBuffer);
-	m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
-	m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
-
-	// Normal On/Off
-	// On/Off 여기서 처리하지 않고 Pixel Shader에서 하는 방식으로 변경
-	m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);
-
-	// SpecularMap On/Off
-	if (m_bSpecularMapEnabled)
-	{
-		m_pDeviceContext->PSSetShaderResources(2, 1, &m_pSpecularTextureRV);
-	}
-	else
-	{
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);  // Unbind the specular map
-	}
-
-	//m_pDeviceContext->PSSetSamplers(1, 1, &m_pSamplerLinear);
-	//m_pDeviceContext->PSSetSamplers(2, 1, &m_pSamplerLinear);
-
-	// Update matrix variables and lighting variables
-	ConstantBuffer cb1;
-	cb1.mWorld = XMMatrixTranspose(m_World);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	cb1.vLightDir = XMFLOAT4(m_LightDirection.x, m_LightDirection.y, m_LightDirection.z, 1.0f);
-	cb1.vLightAmbient = m_LightAmbient;
-	cb1.vLightDiffuse = m_LightDiffuse;
-	cb1.vLightSpecular = m_LightSpecular;
-	cb1.vMaterialAmbient = m_MaterialAmbient;
-	cb1.vMaterialDiffuse = m_MaterialDiffuse;
-	cb1.vMaterialSpecular = m_MaterialSpecular;
-	cb1.fMaterialSpecularPower = m_MaterialSpecularPower;
-	cb1.vCameraPos = m_ViewDirEvaluated;
-
-	m_pDeviceContext->UpdateSubresource(m_pBoolBuffer, 0, nullptr, &boolbuffer, 0, 0);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
-	// Calculate the light transformation matrix
-	XMMATRIX mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat3(&m_LightDirection)); // 조명 방향에 맞게 위치 조정
-	XMMATRIX mLightScale = XMMatrixScaling(0.2f, 0.2f, 0.2f); // 스케일 설정
-	mLight = mLightScale * mLight;
-
-	// Update the world variable to reflect the current light
-	cb1.mWorld = XMMatrixTranspose(mLight);
-	//cb1.vOutputColor = m_LightDiffuse; // 현재 조명의 색상 적용
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
-
-	//// Set the pixel shader for solid color rendering
-	//m_pDeviceContext->PSSetShader(m_pPixelShaderSolid, nullptr, 0);
-	//m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	// Render the fbx model
+	m_FBXRenderer->Render(m_AssimpLoader.GetMeshes(), m_AssimpLoader.GetMaterials(), m_ViewDirEvaluated);
 
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
@@ -201,7 +95,7 @@ void FBXLoading::Render()
 	ImGui::NewFrame();
 
 	// ImGui 창 시작
-	ImGui::Begin("Cube and Light");
+	ImGui::Begin("FBX Model");
 
 	// 라이트 조정
 	ImGui::Text("Light Properties");
@@ -217,10 +111,6 @@ void FBXLoading::Render()
 	ImGui::ColorEdit3("Material Specular", &m_MaterialSpecular.x);
 	ImGui::SliderFloat("Material Specular Power", &m_MaterialSpecularPower, 2.0f, 4096.0f);
 
-	// 큐브 조정
-	ImGui::Text("Cube Properties");
-	ImGui::SliderFloat3("Cube Scale", &m_CubeScale.x, 0.1f, 2.0f);
-	ImGui::SliderFloat3("Cube Rotation", &m_CubeRotation.x, 0.0f, 360.0f);
 
 	// 카메라 조정
 	ImGui::Text("Camera Position");
@@ -229,10 +119,20 @@ void FBXLoading::Render()
 	ImGui::Checkbox("Enable Normal Map", &boolbuffer.useNormalMap);
 	ImGui::Checkbox("Enable Specular Map", &m_bSpecularMapEnabled);
 
-
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	m_FBXRenderer->SetLightDirection(m_LightDirection);
+	m_FBXRenderer->SetLightAmbient(m_LightAmbient);
+	m_FBXRenderer->SetLightDiffuse(m_LightDiffuse);
+	m_FBXRenderer->SetLightSpecular(m_LightSpecular);
+	m_FBXRenderer->SetMaterialAmbient(m_MaterialAmbient);
+	m_FBXRenderer->SetMaterialDiffuse(m_MaterialDiffuse);
+	m_FBXRenderer->SetMaterialSpecular(m_MaterialSpecular);
+	m_FBXRenderer->SetMaterialSpecularPower(m_MaterialSpecularPower);
+	m_FBXRenderer->SetUseNormalMap(boolbuffer.useNormalMap);
+	m_FBXRenderer->SetSpecularMapEnabled(m_bSpecularMapEnabled);
 
 	// Present our back buffer to our front buffer
 	m_pSwapChain->Present(0, 0);
@@ -361,173 +261,35 @@ LRESULT CALLBACK FBXLoading::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	return __super::WndProc(hWnd, message, wParam, lParam);
 }
 
-// 1. Render() 에서 파이프라인에 바인딩할 버텍스 버퍼및 버퍼 정보 준비
-// 2. Render() 에서 파이프라인에 바인딩할 InputLayout 생성 	
-// 3. Render() 에서 파이프라인에 바인딩할  버텍스 셰이더 생성
-// 4. Render() 에서 파이프라인에 바인딩할 인덱스 버퍼 생성
-// 5. Render() 에서 파이프라인에 바인딩할 픽셀 셰이더 생성
-// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
+
 bool FBXLoading::InitScene()
 {
 	HRESULT hr = 0; // 결과값.
-	ID3D10Blob* errorMessage = nullptr;	 // 에러 메시지를 저장할 버퍼.
 
-	
-	// 1. Render() 에서 파이프라인에 바인딩할 버텍스 버퍼및 버퍼 정보 준비
-	// Local or Object or Model Space
-	// Position, Tangent, Normal, Texcoord
-	Vertex vertices[] =
-	{
-		// Top face (y = +1)
-		{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),   Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),  Vector3(0.0f, 0.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
+	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
-		// Bottom face (y = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 0.0f, 1.0f),  Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
-
-		// Left face (x = -1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(0.0f, 1.0f, 0.0f),  Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
-
-		// Right face (x = +1)
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(0.0f, -1.0f, 0.0f),  Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
-
-		// Front face (z = -1)
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),   Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),  Vector3(1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) },
-
-		// Back face (z = +1)
-		{ Vector3(-1.0f, -1.0f, 1.0f),  Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),   Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),    Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),   Vector3(-1.0f, 0.0f, 0.0f),  Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
-	};
-
-	// 버텍스 버퍼 생성.
-	D3D11_BUFFER_DESC bd = {};
-	bd.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = vertices;
-	HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer));
-
-	// 버텍스 버퍼 바인딩.
-	m_VertexBufferStride = sizeof(Vertex);
-	m_VertexBufferOffset = 0;
-
-
-	// 2. Render() 에서 파이프라인에 바인딩할 InputLayout 생성 	
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	ID3D10Blob* vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
-		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
-
-	// 3. Render() 에서 파이프라인에 바인딩할  버텍스 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(),
-		vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
-
-	SAFE_RELEASE(vertexShaderBuffer);
-
-	// 4. Render() 에서 파이프라인에 바인딩할 인덱스 버퍼 생성
-	WORD indices[] =
-	{
-		3,1,0, 2,1,3,
-		6,4,5, 7,4,6,
-		11,9,8, 10,9,11,
-		14,12,13, 15,12,14,
-		19,17,16, 18,17,19,
-		22,20,21, 23,20,22
-	};
-
-	// 인덱스 개수 저장.
-	m_nIndices = ARRAYSIZE(indices);
-
-	bd = {};
-	bd.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0;
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = indices;
-	HR_T(m_pDevice->CreateBuffer(&bd, &ibData, &m_pIndexBuffer));
-
-	// 5. Render() 에서 파이프라인에 바인딩할 픽셀 셰이더 생성
-	ID3D10Blob* pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),
-		pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
-	SAFE_RELEASE(pixelShaderBuffer);
-
-	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성	
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBuffer);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pConstantBuffer));
-
-	bd.ByteWidth = sizeof(BoolBuffer);
-	HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pBoolBuffer));
-
-	// Load the Texture
-	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_1K-JPG_Color.dds", nullptr, &m_pTextureRV));
-
-	// Normal
-	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_1K-JPG_NormalDX.dds", nullptr, &m_pNormalTextureRV));
-
-	// Specular
-	HR_T(CreateDDSTextureFromFile(m_pDevice, L"Bricks059_Specular.dds", nullptr, &m_pSpecularTextureRV));
-
-	// Create the sample state
-	D3D11_SAMPLER_DESC sampDesc = {};
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	sampDesc.MinLOD = 0;
-	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	HR_T(m_pDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear));
+	// Load Model
+	if (!m_AssimpLoader.LoadModel("box.fbx")) {
+		return false;
+	}
 
 	// 초기값설정
-	m_World = XMMatrixIdentity();
-
 	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	m_View = XMMatrixLookAtLH(Eye, At, Up);
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+
+	Matrix view = XMMatrixLookAtLH(Eye, At, Up);
+	m_FBXRenderer->SetView(view);
+	Matrix projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+	m_FBXRenderer->SetProjection(projection);
+
 	return true;
 }
 
 void FBXLoading::UninitScene()
 {
-	SAFE_RELEASE(m_pVertexBuffer);
-	SAFE_RELEASE(m_pVertexShader);
-	SAFE_RELEASE(m_pPixelShader);
-	SAFE_RELEASE(m_pInputLayout);
-	SAFE_RELEASE(m_pIndexBuffer);
-	SAFE_RELEASE(m_pDepthStencilView);
+	if (m_FBXRenderer) {
+		delete m_FBXRenderer;
+		m_FBXRenderer = nullptr;
+	}
 }

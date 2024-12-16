@@ -5,8 +5,6 @@
 #include <Directxtk/DDSTextureLoader.h>
 #include <Directxtk/WICTextureLoader.h>
 
-
-
 LPCWSTR GetComErrorString(HRESULT hr)
 {
 	_com_error err(hr);
@@ -67,4 +65,16 @@ HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName
 		}
 	}
 	return S_OK;
+}
+
+std::wstring StringToWString(const std::string& str) {
+	if (str.empty()) {
+		return std::wstring();
+	}
+
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), NULL, 0);
+	std::wstring wstr(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstr[0], size_needed);
+
+	return wstr;
 }

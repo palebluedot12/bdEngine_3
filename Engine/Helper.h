@@ -11,6 +11,7 @@
 #include <system_error>
 #include <vector>
 #include <directxtk/SimpleMath.h>
+
 using namespace DirectX::SimpleMath;
 
 #define LOG_ERROR(...) \
@@ -102,10 +103,6 @@ void SAFE_DELETE(T* p)
 
 LPCWSTR GetComErrorString(HRESULT hr);
 
-
-
-
-
 // Helper class for COM exceptions
 class com_exception : public std::exception
 {
@@ -142,3 +139,4 @@ inline void HR_T(HRESULT hr)
 HRESULT CompileShaderFromFile(const WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
 
 HRESULT CreateTextureFromFile(ID3D11Device* d3dDevice, const wchar_t* szFileName, ID3D11ShaderResourceView** textureView);
+std::wstring StringToWString(const std::string& str);

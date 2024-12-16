@@ -39,13 +39,7 @@
     <ClInclude Include="Component.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Model.h">
-      <Filter>소스 파일\Resource</Filter>
-    </ClInclude>
     <ClInclude Include="Mesh.h">
-      <Filter>소스 파일\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture.h">
       <Filter>소스 파일\Resource</Filter>
     </ClInclude>
     <ClInclude Include="ILogger.h">
@@ -53,6 +47,15 @@
     </ClInclude>
     <ClInclude Include="Logger.h">
       <Filter>소스 파일\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="AssimpLoader.h">
+      <Filter>소스 파일\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>소스 파일\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="FBXRenderer.h">
+      <Filter>소스 파일\Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -74,17 +77,20 @@
     <ClCompile Include="Component.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Model.cpp">
-      <Filter>소스 파일\Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Mesh.cpp">
-      <Filter>소스 파일\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
       <Filter>소스 파일\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Logger.cpp">
       <Filter>소스 파일\Logger</Filter>
+    </ClCompile>
+    <ClCompile Include="AssimpLoader.cpp">
+      <Filter>소스 파일\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>소스 파일\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="FBXRenderer.cpp">
+      <Filter>소스 파일\Resource</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -30,11 +30,15 @@ float4 main(PS_INPUT input) : SV_Target
     // Diffuse
     float diffuseFactor = max(dot(normal, lightDir), 0);
     float3 diffuse = vLightDiffuse.rgb * vMaterialDiffuse.rgb * diffuseFactor;
-    
+        
     // Specular
     float specularFactor = pow(max(dot(normal, halfVector), 0), fMaterialSpecularPower);
-    float3 specular = (vLightSpecular.rgb * vMaterialSpecular.rgb) * specularFactor * txSpecular.Sample(samLinear, input.Tex).rgb;
+    
+    float3 specular = 0;
+    if (useSpecular)
+        specular = (vLightSpecular.rgb * vMaterialSpecular.rgb) * specularFactor * txSpecular.Sample(samLinear, input.Tex).rgb;
+    
     float3 finalColor = ambient + diffuse + specular;
     
-    return texColor * float4(finalColor, 1); 
+    return texColor * float4(finalColor, 1);
 }
