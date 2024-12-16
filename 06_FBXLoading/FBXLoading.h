@@ -52,4 +52,6 @@ private:
 	ID3D11RenderTargetView* m_pRenderTargetView = nullptr;
 	ID3D11DepthStencilView* m_pDepthStencilView = nullptr;
 	IDXGISwapChain* m_pSwapChain = nullptr;
+
+	//BoolBuffer boolbuffer;
 };

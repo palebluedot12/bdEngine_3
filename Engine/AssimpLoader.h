@@ -11,6 +11,7 @@ class AssimpLoader {
 public:
     AssimpLoader();
     ~AssimpLoader();
+    bool saveEmbeddedTexture(const aiTexture* embeddedTexture, const std::string& directory_);
     bool LoadModel(const std::string& filePath);
     void ProcessNode(aiNode* node, const aiScene* scene);
     std::vector<Mesh> GetMeshes() const;

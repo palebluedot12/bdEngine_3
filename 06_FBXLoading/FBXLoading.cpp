@@ -20,6 +20,7 @@ FBXLoading::FBXLoading(HINSTANCE hInstance)
 	, m_LightAmbient(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
+	, m_CameraPos(0.0f, 4.0f, -10.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialSpecular(1.0f, 1.0f, 1.0f, 1.0f)
@@ -269,7 +270,7 @@ bool FBXLoading::InitScene()
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
 	// Load Model
-	if (!m_AssimpLoader.LoadModel("box.fbx")) {
+	if (!m_AssimpLoader.LoadModel("Resource/box.fbx")) {
 		return false;
 	}
 

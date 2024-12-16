@@ -27,6 +27,9 @@ struct ConstantBuffer
 struct BoolBuffer
 {
     bool useNormalMap;
+    Vector3 pad1;
+    bool useSpecular;
+    Vector3 pad2;
 };
 
 class FBXRenderer {
