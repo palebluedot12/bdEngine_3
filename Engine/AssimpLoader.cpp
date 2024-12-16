@@ -33,9 +33,75 @@ bool AssimpLoader::saveEmbeddedTexture(const aiTexture* embeddedTexture, const s
     return true;
 }
 
+bool AssimpLoader::LoadModel(const std::string& filePath)
+{
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(filePath,
+        aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
+        //Logger::write(std::cout, "ERROR::ASSIMP::" + std::string(importer.GetErrorString()), LOG_LEVEL::LOG_LEVEL_ERROR);
+        return false;
+    }
+
+    ProcessNode(scene->mRootNode, scene);
+
+    return true;
+}
+
 void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
-    // ...
+    std::vector<Vertex> vertices;
+    std::vector<unsigned short> indices;
+
+    // vertices
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+    {
+        Vertex vertex;
+        // positions
+        vertex.Pos.x = mesh->mVertices[i].x;
+        vertex.Pos.y = mesh->mVertices[i].y;
+        vertex.Pos.z = mesh->mVertices[i].z;
+
+        // normals
+        vertex.Normal.x = mesh->mNormals[i].x;
+        vertex.Normal.y = mesh->mNormals[i].y;
+        vertex.Normal.z = mesh->mNormals[i].z;
+
+        // texture coordinates
+        if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+        {
+            vertex.Tex.x = mesh->mTextureCoords[0][i].x;
+            vertex.Tex.y = mesh->mTextureCoords[0][i].y;
+        }
+        else {
+            vertex.Tex = Vector2(0.0f, 0.0f);
+        }
+
+        // tangents
+        if (mesh->mTangents)
+        {
+            vertex.Tangent.x = mesh->mTangents[i].x;
+            vertex.Tangent.y = mesh->mTangents[i].y;
+            vertex.Tangent.z = mesh->mTangents[i].z;
+        }
+
+        vertices.push_back(vertex);
+    }
+
+    // indices
+    for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+    {
+        aiFace face = mesh->mFaces[i];
+        for (unsigned int j = 0; j < face.mNumIndices; j++)
+        {
+            indices.push_back(face.mIndices[j]);
+        }
+    }
+
+    // materials
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
     Material newMaterial;
@@ -58,7 +124,10 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
             }
         }
         else {
-            newMaterial.diffuseTexturePath = baseTexturePath + std::string(texturePath.C_Str());
+            std::filesystem::path fullTexturePath = m_ModelDirectory;
+            fullTexturePath /= texturePath.C_Str();
+            newMaterial.diffuseTexturePath = fullTexturePath.string();
+
         }
     }
     else {
@@ -80,13 +149,14 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
             }
         }
         else {
-            newMaterial.normalTexturePath = baseTexturePath + std::string(texturePath.C_Str());
+            std::filesystem::path fullTexturePath = m_ModelDirectory;
+            fullTexturePath /= texturePath.C_Str();
+            newMaterial.normalTexturePath = fullTexturePath.string();
         }
     }
     else {
         newMaterial.normalTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
     }
-
 
     // Specular Texture
     if (material->GetTexture(aiTextureType_SPECULAR, 0, &texturePath) == AI_SUCCESS) {
@@ -103,35 +173,102 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
             }
         }
         else {
-            newMaterial.specularTexturePath = baseTexturePath + std::string(texturePath.C_Str());
+            std::filesystem::path fullTexturePath = m_ModelDirectory;
+            fullTexturePath /= texturePath.C_Str();
+            newMaterial.specularTexturePath = fullTexturePath.string();
         }
     }
     else {
         newMaterial.specularTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
     }
 
-
     m_Materials.push_back(newMaterial);
+    m_Meshes.emplace_back(vertices, indices);
 }
 
-bool AssimpLoader::LoadModel(const std::string& filePath)
-{
-    Assimp::Importer importer;
-
-    const aiScene* scene = importer.ReadFile(filePath,
-        aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-    {
-        //Logger::write(std::cout, "ERROR::ASSIMP::" + std::string(importer.GetErrorString()), LOG_LEVEL::LOG_LEVEL_ERROR);
-        return false;
-    }
-
-    ProcessNode(scene->mRootNode, scene);
-
-    return true;
-}
-
+//void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
+//{
+//    // ...
+//    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+//
+//    Material newMaterial;
+//    aiString texturePath;
+//
+//    std::string baseTexturePath = "Resource/";
+//
+//    // Diffuse Texture
+//    if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
+//        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') {
+//            int textureIndex = atoi(texturePath.C_Str() + 1);
+//            if (textureIndex < scene->mNumTextures) {
+//                aiTexture* embeddedTexture = scene->mTextures[textureIndex];
+//                if (embeddedTexture) {
+//                    std::filesystem::path embeddedTexturePath = embeddedTexture->mFilename.C_Str();
+//                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) {
+//                        newMaterial.diffuseTexturePath = baseTexturePath + embeddedTexturePath.filename().string();
+//                    }
+//                }
+//            }
+//        }
+//        else {
+//            newMaterial.diffuseTexturePath = baseTexturePath + std::string(texturePath.C_Str());
+//        }
+//    }
+//    else {
+//        newMaterial.diffuseTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
+//    }
+//
+//    // Normal Texture
+//    if (material->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == AI_SUCCESS) {
+//        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') {
+//            int textureIndex = atoi(texturePath.C_Str() + 1);
+//            if (textureIndex < scene->mNumTextures) {
+//                aiTexture* embeddedTexture = scene->mTextures[textureIndex];
+//                if (embeddedTexture) {
+//                    std::filesystem::path embeddedTexturePath = embeddedTexture->mFilename.C_Str();
+//                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) {
+//                        newMaterial.normalTexturePath = baseTexturePath + embeddedTexturePath.filename().string();
+//                    }
+//                }
+//            }
+//        }
+//        else {
+//            newMaterial.normalTexturePath = baseTexturePath + std::string(texturePath.C_Str());
+//        }
+//    }
+//    else {
+//        newMaterial.normalTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
+//    }
+//
+//
+//    // Specular Texture
+//    if (material->GetTexture(aiTextureType_SPECULAR, 0, &texturePath) == AI_SUCCESS) {
+//        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') {
+//            int textureIndex = atoi(texturePath.C_Str() + 1);
+//            if (textureIndex < scene->mNumTextures) {
+//                aiTexture* embeddedTexture = scene->mTextures[textureIndex];
+//                if (embeddedTexture) {
+//                    std::filesystem::path embeddedTexturePath = embeddedTexture->mFilename.C_Str();
+//                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) {
+//                        newMaterial.specularTexturePath = baseTexturePath + embeddedTexturePath.filename().string();
+//                    }
+//                }
+//            }
+//        }
+//        else {
+//            newMaterial.specularTexturePath = baseTexturePath + std::string(texturePath.C_Str());
+//        }
+//    }
+//    else {
+//        newMaterial.specularTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
+//    }
+//
+//
+//    m_Materials.push_back(newMaterial);
+//}
+//
+//
+//
 void AssimpLoader::ProcessNode(aiNode* node, const aiScene* scene)
 {
     // Process all the node's meshes (if any)

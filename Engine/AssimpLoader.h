@@ -20,6 +20,7 @@ public:
 private:
     std::vector<Mesh> m_Meshes;
     std::vector<Material> m_Materials;
+    std::string m_ModelDirectory;
 
     void ProcessMesh(aiMesh* mesh, const aiScene* scene);
 };

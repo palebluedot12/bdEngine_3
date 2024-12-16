@@ -270,7 +270,7 @@ bool FBXLoading::InitScene()
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
 	// Load Model
-	if (!m_AssimpLoader.LoadModel("Resource/box.fbx")) {
+	if (!m_AssimpLoader.LoadModel("Resource/Character.fbx")) {
 		return false;
 	}
 
