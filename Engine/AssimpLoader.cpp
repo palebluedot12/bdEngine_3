@@ -126,7 +126,7 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         else {
             std::filesystem::path fullTexturePath = m_ModelDirectory;
             fullTexturePath /= texturePath.C_Str();
-            newMaterial.diffuseTexturePath = fullTexturePath.string();
+            newMaterial.diffuseTexturePath = std::filesystem::absolute(fullTexturePath).string(); // 절대 경로로 변경
 
         }
     }
@@ -151,7 +151,7 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         else {
             std::filesystem::path fullTexturePath = m_ModelDirectory;
             fullTexturePath /= texturePath.C_Str();
-            newMaterial.normalTexturePath = fullTexturePath.string();
+            newMaterial.normalTexturePath = std::filesystem::absolute(fullTexturePath).string(); // 절대 경로로 변경
         }
     }
     else {
@@ -175,7 +175,7 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         else {
             std::filesystem::path fullTexturePath = m_ModelDirectory;
             fullTexturePath /= texturePath.C_Str();
-            newMaterial.specularTexturePath = fullTexturePath.string();
+            newMaterial.specularTexturePath = std::filesystem::absolute(fullTexturePath).string(); // 절대 경로로 변경
         }
     }
     else {

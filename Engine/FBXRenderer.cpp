@@ -3,6 +3,7 @@
 #include "..\\Engine\\Helper.h"
 #include <d3dcompiler.h>
 #include <Directxtk/DDSTextureLoader.h>
+#include <DirectXTex.h>
 
 FBXRenderer::FBXRenderer(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int width, int height)
     :m_pDevice(device), m_pDeviceContext(deviceContext), m_LightDirection(0.0f, 0.0f, 1.0f),
@@ -140,9 +141,27 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
 
         m_nIndices = indices.size();
 
+        // TODO : Texture Loading 제대로 안되는중
         // Load the Texture
         if (!material.diffuseTexturePath.empty())
-            HR_T(CreateDDSTextureFromFile(m_pDevice, StringToWString(material.diffuseTexturePath).c_str(), nullptr, &m_pTextureRV));
+        {
+            std::wstring texturePath = StringToWString(material.diffuseTexturePath);
+
+            HRESULT hr = S_OK;
+
+            if (texturePath.rfind(L".dds") != std::wstring::npos)
+                hr = CreateDDSTextureFromFile(m_pDevice, texturePath.c_str(), nullptr, &m_pTextureRV);
+
+            else if (texturePath.rfind(L".png") != std::wstring::npos)
+                hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePath.c_str(), &m_pTextureRV);
+
+            if (FAILED(hr))
+            {
+                // 텍스처 로드 실패 시
+                ID3D11ShaderResourceView* nullSRV = nullptr;
+                m_pDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
+            }
+        }
         else {
             ID3D11ShaderResourceView* nullSRV = nullptr;
             m_pDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
@@ -216,6 +235,36 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
         SAFE_RELEASE(m_pIndexBuffer);
     }
 
+}
+
+HRESULT FBXRenderer::CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* filename, ID3D11ShaderResourceView** textureView)
+{
+    HRESULT hr = S_OK;
+    DirectX::ScratchImage image;
+
+    hr = LoadFromWICFile(filename, DirectX::WIC_FLAGS_NONE, nullptr, image);
+    if (FAILED(hr)) {
+        //OutputDebugString(L"Failed to load texture from WIC file: " + std::wstring(filename) + L"\n");
+        return hr;
+    }
+
+    DirectX::TexMetadata metadata = image.GetMetadata();
+
+    DirectX::ScratchImage d3dImage;
+    hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), metadata, DirectX::TEX_FILTER_DEFAULT, 0, d3dImage);
+    if (FAILED(hr)) {
+        //OutputDebugString(L"Failed to generate mipmaps: " + std::wstring(filename) + L"\n");
+        return hr;
+    }
+
+    hr = DirectX::CreateShaderResourceView(device, d3dImage.GetImages(), d3dImage.GetImageCount(), d3dImage.GetMetadata(), textureView);
+
+    if (FAILED(hr)) {
+        //OutputDebugString(L"Failed to create shader resource view: " + std::wstring(filename) + L"\n");
+        return hr;
+    }
+
+    return hr;
 }
 
 void FBXRenderer::SetView(Matrix view)

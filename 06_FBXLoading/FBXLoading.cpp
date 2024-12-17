@@ -10,6 +10,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <iostream>
+#include <DirectXTex.h>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -270,7 +271,7 @@ bool FBXLoading::InitScene()
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
 	// Load Model
-	if (!m_AssimpLoader.LoadModel("Resource/Character.fbx")) {
+	if (!m_AssimpLoader.LoadModel("../Resource/Character.fbx")) {
 		return false;
 	}
 
