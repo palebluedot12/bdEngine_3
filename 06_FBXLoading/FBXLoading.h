@@ -27,20 +27,22 @@ private:
 	AssimpLoader m_AssimpLoader;
 	FBXRenderer* m_FBXRenderer;
 
-	// Light properties
+	// Light
 	Vector3 m_LightDirection;
 	Vector4 m_LightAmbient;
 	Vector4 m_LightDiffuse;
 	Vector4 m_LightSpecular;
 
-	// Material Properties
+	// Material 
 	Vector4 m_MaterialAmbient;
 	Vector4 m_MaterialDiffuse;
 	Vector4 m_MaterialSpecular;
 	float m_MaterialSpecularPower;
 
-	// Camera Properties
+	// Camera
 	Vector3 m_CameraPos;
+	float m_CameraMoveSpeed;
+	Vector3 m_CameraDirection;
 
 	bool m_bSpecularMapEnabled;
 	BoolBuffer boolbuffer;
@@ -52,6 +54,4 @@ private:
 	ID3D11RenderTargetView* m_pRenderTargetView = nullptr;
 	ID3D11DepthStencilView* m_pDepthStencilView = nullptr;
 	IDXGISwapChain* m_pSwapChain = nullptr;
-
-	//BoolBuffer boolbuffer;
 };

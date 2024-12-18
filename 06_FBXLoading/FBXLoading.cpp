@@ -22,6 +22,8 @@ FBXLoading::FBXLoading(HINSTANCE hInstance)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_CameraPos(0.0f, 160.0f, 200.0f)
+	, m_CameraDirection(0.0f, 0.0f, -1.0f)
+	, m_CameraMoveSpeed(100.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialSpecular(1.0f, 1.0f, 1.0f, 1.0f)
@@ -61,6 +63,27 @@ void FBXLoading::Update()
 	__super::Update();
 
 	float t = GameTimer::m_Instance->TotalTime();
+	float deltaTime = GameTimer::m_Instance->DeltaTime();
+	float moveSpeed = m_CameraMoveSpeed * deltaTime;
+
+	if (GetAsyncKeyState('W') & 0x8000)
+		m_CameraPos = m_CameraPos + (XMVector3Normalize(XMLoadFloat3(&m_CameraDirection)) * moveSpeed);
+	if (GetAsyncKeyState('S') & 0x8000)
+		m_CameraPos = m_CameraPos + (XMVector3Normalize(XMLoadFloat3(&m_CameraDirection)) * -moveSpeed);
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		XMVECTOR cameraRight = XMVector3Cross(XMLoadFloat3(&m_CameraDirection), XMVectorSet(0, 1, 0, 0));
+		m_CameraPos = m_CameraPos + (XMVector3Normalize(cameraRight) * -moveSpeed);
+	}
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		XMVECTOR cameraRight = XMVector3Cross(XMLoadFloat3(&m_CameraDirection), XMVectorSet(0, 1, 0, 0));
+		m_CameraPos = m_CameraPos + (XMVector3Normalize(cameraRight) * moveSpeed);
+	}
+	if (GetAsyncKeyState('Q') & 0x8000)
+		m_CameraPos.y += moveSpeed;
+	if (GetAsyncKeyState('E') & 0x8000)
+		m_CameraPos.y -= moveSpeed;
 
 	XMMATRIX view = XMMatrixLookAtLH(
 		XMLoadFloat3(&m_CameraPos),			// 카메라 위치
@@ -71,12 +94,13 @@ void FBXLoading::Update()
 	XMVECTOR determinant;
 	XMMATRIX invView = XMMatrixInverse(&determinant, view);
 	XMVECTOR cameraPos = invView.r[3];
+
 	// 월드 공간에서의 카메라 위치
 	XMStoreFloat3(&m_ViewDirEvaluated, cameraPos);
 
 	m_FBXRenderer->SetView(view);
-	Logger::default_log_level = LOG_LEVEL::LOG_LEVEL_DEBUG;
 
+	//Logger::default_log_level = LOG_LEVEL::LOG_LEVEL_DEBUG;
 	//Logger::write("LogFile", "This is a Test.");
 }
 
@@ -280,14 +304,14 @@ bool FBXLoading::InitScene()
 	}
 
 	// 카메라 뷰행렬 초기값설정
-	XMVECTOR Eye = XMVectorSet(0.0f, 50.0f, -100.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 150.0f, -100.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 300.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 	Matrix view = XMMatrixLookAtLH(Eye, At, Up);
 	m_FBXRenderer->SetView(view);
 
-	// 시야각
+	// (XM_PIDIV4 : 시야각 45도, 화면 비율, near z, far z 순서)
 	Matrix projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 1000.0f);
 	m_FBXRenderer->SetProjection(projection);
 
