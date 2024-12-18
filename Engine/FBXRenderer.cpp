@@ -169,15 +169,43 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
 
         // Normal
         if (!material.normalTexturePath.empty())
-            HR_T(CreateDDSTextureFromFile(m_pDevice, StringToWString(material.normalTexturePath).c_str(), nullptr, &m_pNormalTextureRV));
+        {
+            std::wstring texturePath = StringToWString(material.normalTexturePath);
+
+            HRESULT hr = S_OK;
+            if (texturePath.rfind(L".dds") != std::wstring::npos)
+                hr = CreateDDSTextureFromFile(m_pDevice, texturePath.c_str(), nullptr, &m_pNormalTextureRV);
+            else if (texturePath.rfind(L".png") != std::wstring::npos)
+                hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePath.c_str(), &m_pNormalTextureRV);
+
+            if (FAILED(hr))
+            {
+                ID3D11ShaderResourceView* nullSRV = nullptr;
+                m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
+            }
+        }
         else {
             ID3D11ShaderResourceView* nullSRV = nullptr;
             m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
         }
 
+
         // Specular
         if (!material.specularTexturePath.empty())
-            HR_T(CreateDDSTextureFromFile(m_pDevice, StringToWString(material.specularTexturePath).c_str(), nullptr, &m_pSpecularTextureRV));
+        {
+            std::wstring texturePath = StringToWString(material.specularTexturePath);
+
+            HRESULT hr = S_OK;
+            if (texturePath.rfind(L".dds") != std::wstring::npos)
+                hr = CreateDDSTextureFromFile(m_pDevice, texturePath.c_str(), nullptr, &m_pSpecularTextureRV);
+            else if (texturePath.rfind(L".png") != std::wstring::npos)
+                hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePath.c_str(), &m_pSpecularTextureRV);
+            if (FAILED(hr))
+            {
+                ID3D11ShaderResourceView* nullSRV = nullptr;
+                m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);
+            }
+        }
         else {
             ID3D11ShaderResourceView* nullSRV = nullptr;
             m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);

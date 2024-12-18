@@ -17,11 +17,11 @@
 
 FBXLoading::FBXLoading(HINSTANCE hInstance)
 	:GameApp(hInstance)
-	, m_LightDirection(0.0f, 0.0f, 1.0f)
+	, m_LightDirection(0.0f, 0.0f, -1.0f)
 	, m_LightAmbient(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
-	, m_CameraPos(0.0f, 4.0f, -10.0f)
+	, m_CameraPos(0.0f, 160.0f, 200.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialSpecular(1.0f, 1.0f, 1.0f, 1.0f)
@@ -63,8 +63,8 @@ void FBXLoading::Update()
 	float t = GameTimer::m_Instance->TotalTime();
 
 	XMMATRIX view = XMMatrixLookAtLH(
-		XMLoadFloat3(&m_CameraPos),
-		XMVectorSet(0, 0, 0, 1),
+		XMLoadFloat3(&m_CameraPos),			// 카메라 위치
+		XMVectorSet(0, 120, 0, 1),			// 주시점
 		XMVectorSet(0, 1, 0, 0));
 
 	// 카메라 위치 계산 (View 행렬의 역행렬에서 추출)
@@ -116,7 +116,7 @@ void FBXLoading::Render()
 
 	// 카메라 조정
 	ImGui::Text("Camera Position");
-	ImGui::SliderFloat3("Camera Position", &m_CameraPos.x, -10.0f, 10.0f);
+	ImGui::SliderFloat3("Camera Position", &m_CameraPos.x, -200.0f, 200.0f);
 
 	ImGui::Checkbox("Enable Normal Map", &boolbuffer.useNormalMap);
 	ImGui::Checkbox("Enable Specular Map", &m_bSpecularMapEnabled);
@@ -271,18 +271,24 @@ bool FBXLoading::InitScene()
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
 	// Load Model
-	if (!m_AssimpLoader.LoadModel("../Resource/Character.fbx")) {
+	//if (!m_AssimpLoader.LoadModel("../Resource/Character.fbx")) {
+	//	return false;
+	//}
+
+	if (!m_AssimpLoader.LoadModel("../Resource/zeldaPosed001.fbx")) {
 		return false;
 	}
 
-	// 초기값설정
-	XMVECTOR Eye = XMVectorSet(0.0f, 4.0f, -10.0f, 0.0f);
-	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	// 카메라 뷰행렬 초기값설정
+	XMVECTOR Eye = XMVectorSet(0.0f, 50.0f, -100.0f, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 300.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 	Matrix view = XMMatrixLookAtLH(Eye, At, Up);
 	m_FBXRenderer->SetView(view);
-	Matrix projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+
+	// 시야각
+	Matrix projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 1000.0f);
 	m_FBXRenderer->SetProjection(projection);
 
 	return true;
