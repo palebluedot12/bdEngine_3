@@ -19,6 +19,9 @@
     <Filter Include="소스 파일\Assimp">
       <UniqueIdentifier>{343fb75e-ae26-43b8-be9f-ae388692a633}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Imguizmo">
+      <UniqueIdentifier>{d4a4db91-cfd1-4f55-a6fc-1f44520afe62}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -57,6 +60,24 @@
     <ClInclude Include="FBXRenderer.h">
       <Filter>소스 파일\Assimp</Filter>
     </ClInclude>
+    <ClInclude Include="Imguizmo\ImCurveEdit.h">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Imguizmo\ImGradient.h">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Imguizmo\ImGuizmo.h">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Imguizmo\ImSequencer.h">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Imguizmo\ImZoomSlider.h">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Imguizmo\GraphEditor.h">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -91,6 +112,21 @@
     </ClCompile>
     <ClCompile Include="FBXRenderer.cpp">
       <Filter>소스 파일\Assimp</Filter>
+    </ClCompile>
+    <ClCompile Include="Imguizmo\ImCurveEdit.cpp">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Imguizmo\ImGradient.cpp">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Imguizmo\ImGuizmo.cpp">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Imguizmo\ImSequencer.cpp">
+      <Filter>소스 파일\Imguizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Imguizmo\GraphEditor.cpp">
+      <Filter>소스 파일\Imguizmo</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -95,18 +95,19 @@ void FBXLoading::Update()
 	if (GetAsyncKeyState('E') & 0x8000)
 		m_CameraPos.y -= moveSpeed;
 
+	// 주시점 고정된 LookAt
 	//XMMATRIX view = XMMatrixLookAtLH(
 	//	XMLoadFloat3(&m_CameraPos),			// 카메라 위치
 	//	XMVectorSet(0, 120, 0, 1),			// 주시점
 	//	XMVectorSet(0, 1, 0, 0));
 
-	// 뷰 행렬 (LookAt 대신 LookTo 사용)
+	// 카메라 같이 움직이는 LookTo
 	XMMATRIX view = XMMatrixLookToLH(
 		XMLoadFloat3(&m_CameraPos),
 		XMLoadFloat3(&m_CameraDirection),
 		XMVectorSet(0, 1, 0, 0));
 
-	// 카메라 위치 계산 (View 행렬의 역행렬에서 추출)
+	// 카메라 위치 계산 (View 역행렬)
 	XMVECTOR determinant;
 	XMMATRIX invView = XMMatrixInverse(&determinant, view);
 	XMVECTOR cameraPos = invView.r[3];
