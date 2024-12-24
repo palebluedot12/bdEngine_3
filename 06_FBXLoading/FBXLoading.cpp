@@ -66,28 +66,44 @@ void FBXLoading::Update()
 	float deltaTime = GameTimer::m_Instance->DeltaTime();
 	float moveSpeed = m_CameraMoveSpeed * deltaTime;
 
+	m_FPS = 1.0f / deltaTime;
+
+	XMVECTOR cameraDirection = XMVector3Normalize(XMLoadFloat3(&m_CameraDirection));
+
+	// 카메라 움직이기
 	if (GetAsyncKeyState('W') & 0x8000)
-		m_CameraPos = m_CameraPos + (XMVector3Normalize(XMLoadFloat3(&m_CameraDirection)) * moveSpeed);
+	{
+		XMStoreFloat3(&m_CameraPos, XMLoadFloat3(&m_CameraPos) + cameraDirection * moveSpeed); // XMVECTOR를 XMFLOAT3로 변환 후 저장
+	}
 	if (GetAsyncKeyState('S') & 0x8000)
-		m_CameraPos = m_CameraPos + (XMVector3Normalize(XMLoadFloat3(&m_CameraDirection)) * -moveSpeed);
+	{
+		//XMVECTOR cameraDirection = XMVector3Normalize(XMLoadFloat3(&m_CameraDirection));
+		XMStoreFloat3(&m_CameraPos, XMLoadFloat3(&m_CameraPos) + cameraDirection * -moveSpeed); 
+	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
 		XMVECTOR cameraRight = XMVector3Cross(XMLoadFloat3(&m_CameraDirection), XMVectorSet(0, 1, 0, 0));
-		m_CameraPos = m_CameraPos + (XMVector3Normalize(cameraRight) * -moveSpeed);
+		XMStoreFloat3(&m_CameraPos, XMLoadFloat3(&m_CameraPos) + XMVector3Normalize(cameraRight) * moveSpeed); 
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
 		XMVECTOR cameraRight = XMVector3Cross(XMLoadFloat3(&m_CameraDirection), XMVectorSet(0, 1, 0, 0));
-		m_CameraPos = m_CameraPos + (XMVector3Normalize(cameraRight) * moveSpeed);
+		XMStoreFloat3(&m_CameraPos, XMLoadFloat3(&m_CameraPos) + XMVector3Normalize(cameraRight) * -moveSpeed);
 	}
 	if (GetAsyncKeyState('Q') & 0x8000)
 		m_CameraPos.y += moveSpeed;
 	if (GetAsyncKeyState('E') & 0x8000)
 		m_CameraPos.y -= moveSpeed;
 
-	XMMATRIX view = XMMatrixLookAtLH(
-		XMLoadFloat3(&m_CameraPos),			// 카메라 위치
-		XMVectorSet(0, 120, 0, 1),			// 주시점
+	//XMMATRIX view = XMMatrixLookAtLH(
+	//	XMLoadFloat3(&m_CameraPos),			// 카메라 위치
+	//	XMVectorSet(0, 120, 0, 1),			// 주시점
+	//	XMVectorSet(0, 1, 0, 0));
+
+	// 뷰 행렬 (LookAt 대신 LookTo 사용)
+	XMMATRIX view = XMMatrixLookToLH(
+		XMLoadFloat3(&m_CameraPos),
+		XMLoadFloat3(&m_CameraDirection),
 		XMVectorSet(0, 1, 0, 0));
 
 	// 카메라 위치 계산 (View 행렬의 역행렬에서 추출)
@@ -113,7 +129,7 @@ void FBXLoading::Render()
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// Render the fbx model
-	m_FBXRenderer->Render(m_AssimpLoader.GetMeshes(), m_AssimpLoader.GetMaterials(), m_ViewDirEvaluated);
+	m_FBXRenderer->Render(m_AssimpLoader->GetMeshes(), m_AssimpLoader->GetMaterials(), m_ViewDirEvaluated);
 
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
@@ -137,13 +153,14 @@ void FBXLoading::Render()
 	ImGui::ColorEdit3("Material Specular", &m_MaterialSpecular.x);
 	ImGui::SliderFloat("Material Specular Power", &m_MaterialSpecularPower, 2.0f, 4096.0f);
 
-
 	// 카메라 조정
 	ImGui::Text("Camera Position");
 	ImGui::SliderFloat3("Camera Position", &m_CameraPos.x, -200.0f, 200.0f);
 
 	ImGui::Checkbox("Enable Normal Map", &boolbuffer.useNormalMap);
 	ImGui::Checkbox("Enable Specular Map", &m_bSpecularMapEnabled);
+
+	ImGui::Text("FPS: %.2f", m_FPS); // FPS 출력
 
 	ImGui::End();
 	ImGui::Render();
@@ -292,6 +309,7 @@ bool FBXLoading::InitScene()
 {
 	HRESULT hr = 0; // 결과값.
 
+	m_AssimpLoader = new AssimpLoader(m_pDevice, m_pDeviceContext);
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
 	// Load Model
@@ -299,9 +317,12 @@ bool FBXLoading::InitScene()
 	//	return false;
 	//}
 
-	if (!m_AssimpLoader.LoadModel("../Resource/zeldaPosed001.fbx")) {
+	if (!m_AssimpLoader->LoadModel("../Resource/zeldaPosed001.fbx")) {
 		return false;
 	}
+
+	m_FBXRenderer->SetMeshTextures(m_AssimpLoader->GetMeshTextures());
+
 
 	// 카메라 뷰행렬 초기값설정
 	XMVECTOR Eye = XMVectorSet(0.0f, 150.0f, -100.0f, 0.0f);
@@ -320,8 +341,16 @@ bool FBXLoading::InitScene()
 
 void FBXLoading::UninitScene()
 {
-	if (m_FBXRenderer) {
+	if (m_FBXRenderer) 
+	{
 		delete m_FBXRenderer;
 		m_FBXRenderer = nullptr;
 	}
+
+	if (m_AssimpLoader)
+	{
+		delete m_AssimpLoader;
+		m_AssimpLoader = nullptr;
+	}
+
 }

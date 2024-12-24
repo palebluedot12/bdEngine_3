@@ -24,7 +24,7 @@ private:
 	bool InitImGUI();
 	void UninitImGUI();
 
-	AssimpLoader m_AssimpLoader;
+	AssimpLoader* m_AssimpLoader;
 	FBXRenderer* m_FBXRenderer;
 
 	// Light
@@ -54,4 +54,8 @@ private:
 	ID3D11RenderTargetView* m_pRenderTargetView = nullptr;
 	ID3D11DepthStencilView* m_pDepthStencilView = nullptr;
 	IDXGISwapChain* m_pSwapChain = nullptr;
+
+	float m_FrameTime;
+	float m_FPS;
+
 };

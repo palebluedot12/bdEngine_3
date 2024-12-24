@@ -10,14 +10,26 @@ struct Vertex
     Vector2 Tex;
 };
 
-class Mesh {
+struct MeshTexture
+{
+    ID3D11ShaderResourceView* diffuseTextureRV = nullptr;
+    ID3D11ShaderResourceView* normalTextureRV = nullptr;
+    ID3D11ShaderResourceView* specularTextureRV = nullptr;
+};
+ 
+class Mesh 
+{
 public:
-    Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned short>& indices);
+    Mesh(std::vector<Vertex>* vertices, std::vector<unsigned short>* indices);
     ~Mesh();
     const std::vector<Vertex>& GetVertices() const;
     const std::vector<unsigned short>& GetIndices() const;
 
 private:
-    std::vector<Vertex> m_Vertices;
-    std::vector<unsigned short> m_Indices;
+    std::vector<Vertex>* m_Vertices;
+    std::vector<unsigned short>* m_Indices;
+
+private:
+    Mesh(const Mesh& other) = delete;
+    Mesh& operator=(const Mesh& other) = delete;
 };

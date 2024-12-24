@@ -38,7 +38,8 @@ public:
     ~FBXRenderer();
 
     void Initialize();
-    void Render(const std::vector<Mesh>& meshes, const std::vector<Material>& materials, Vector3 cameraPos);
+    void ReleaseRenderResources();
+    void Render(const std::vector<Mesh*>& meshes, const std::vector<Material>& materials, Vector3 cameraPos);
     void SetView(Matrix view);
     void SetProjection(Matrix projection);
 
@@ -57,9 +58,11 @@ public:
 
     void SetUseNormalMap(bool useNormalMap);
     void SetSpecularMapEnabled(bool specularMapEnabled);
+    void SetMeshTextures(const std::vector<MeshTexture>& meshTextures);
+
 
 private:
-    HRESULT CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* filename, ID3D11ShaderResourceView** textureView);
+    //HRESULT CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* filename, ID3D11ShaderResourceView** textureView);
     ID3D11Device* m_pDevice = nullptr;
     ID3D11DeviceContext* m_pDeviceContext = nullptr;
 
@@ -71,9 +74,9 @@ private:
     ID3D11Buffer* m_pConstantBuffer = nullptr;
     ID3D11Buffer* m_pBoolBuffer = nullptr;
 
-    ID3D11ShaderResourceView* m_pTextureRV = nullptr;
-    ID3D11ShaderResourceView* m_pNormalTextureRV = nullptr;
-    ID3D11ShaderResourceView* m_pSpecularTextureRV = nullptr;
+    //ID3D11ShaderResourceView* m_pTextureRV = nullptr;
+    //ID3D11ShaderResourceView* m_pNormalTextureRV = nullptr;
+    //ID3D11ShaderResourceView* m_pSpecularTextureRV = nullptr;
     ID3D11SamplerState* m_pSamplerLinear = nullptr;
 
     UINT m_VertexBufferStride;
@@ -100,4 +103,6 @@ private:
 
     BoolBuffer boolbuffer;
     bool m_bSpecularMapEnabled;
+
+    std::vector<MeshTexture> m_MeshTextures;
 };

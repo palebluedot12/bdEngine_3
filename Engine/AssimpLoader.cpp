@@ -2,10 +2,23 @@
 #include "AssimpLoader.h"
 #include "..\\Engine\\Logger.h"
 #include <filesystem>
+#include <Directxtk/DDSTextureLoader.h>
+#include <DirectXTex.h>
 
-AssimpLoader::AssimpLoader() {}
+AssimpLoader::AssimpLoader(ID3D11Device* device, ID3D11DeviceContext* deviceContext) 
+    :m_pDevice(device), m_pDeviceContext(deviceContext)
+{
+}
 
-AssimpLoader::~AssimpLoader() {}
+AssimpLoader::~AssimpLoader() 
+{
+    for (auto& texture : m_MeshTextures)
+    {
+        SAFE_RELEASE(texture.diffuseTextureRV);
+        SAFE_RELEASE(texture.normalTextureRV);
+        SAFE_RELEASE(texture.specularTextureRV);
+    }
+}
 
 bool AssimpLoader::saveEmbeddedTexture(const aiTexture* embeddedTexture, const std::string& directory_)
 {
@@ -46,14 +59,17 @@ bool AssimpLoader::LoadModel(const std::string& filePath)
     }
 
     ProcessNode(scene->mRootNode, scene);
+    //LoadTextures(m_Materials);
 
     return true;
 }
 
 void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
-    std::vector<Vertex> vertices;
-    std::vector<unsigned short> indices;
+
+    // TODO : 여기서 누수
+    std::vector<Vertex>* vertices = new std::vector<Vertex>();
+    std::vector<unsigned short>* indices = new std::vector<unsigned short>();
 
     // vertices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -87,7 +103,7 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
             vertex.Tangent.z = mesh->mTangents[i].z;
         }
 
-        vertices.push_back(vertex);
+        vertices->push_back(vertex);
     }
 
     // indices
@@ -96,7 +112,7 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         aiFace face = mesh->mFaces[i];
         for (unsigned int j = 0; j < face.mNumIndices; j++)
         {
-            indices.push_back(face.mIndices[j]);
+            indices->push_back(face.mIndices[j]);
         }
     }
 
@@ -105,79 +121,112 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
     Material newMaterial;
     aiString texturePath;
+    MeshTexture meshTexture;
 
     std::string baseTexturePath = "../Resource/";
 
     // Diffuse Texture
-    if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
-        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') {
+    if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) 
+    {
+        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') 
+        {
             int textureIndex = atoi(texturePath.C_Str() + 1);
-            if (textureIndex < scene->mNumTextures) {
+            if (textureIndex < scene->mNumTextures) 
+            {
                 aiTexture* embeddedTexture = scene->mTextures[textureIndex];
-                if (embeddedTexture) {
+                if (embeddedTexture) 
+                {
                     std::filesystem::path embeddedTexturePath = embeddedTexture->mFilename.C_Str();
-                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) {
+                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) 
+                    {
                         newMaterial.diffuseTexturePath = baseTexturePath + embeddedTexturePath.filename().string();
                     }
                 }
             }
         }
-        else {
+        else 
+        {
             std::filesystem::path fullTexturePath = texturePath.C_Str();
             newMaterial.diffuseTexturePath = baseTexturePath + fullTexturePath.filename().string();  // 파일 이름만 추출
         }
+
+        HRESULT hr = S_OK;
+        std::wstring texturePathStr = StringToWString(newMaterial.diffuseTexturePath);
+        if (texturePathStr.rfind(L".dds") != std::wstring::npos)
+            hr = CreateDDSTextureFromFile(m_pDevice, texturePathStr.c_str(), nullptr, &meshTexture.diffuseTextureRV);
+        else if (texturePathStr.rfind(L".png") != std::wstring::npos)
+            hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePathStr.c_str(), &meshTexture.diffuseTextureRV);
+       
     }
 
     // Normal Texture
-    if (material->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == AI_SUCCESS) {
-        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') {
+    if (material->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == AI_SUCCESS) 
+    {
+        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') 
+        {
             int textureIndex = atoi(texturePath.C_Str() + 1);
-            if (textureIndex < scene->mNumTextures) {
+            if (textureIndex < scene->mNumTextures) 
+            {
                 aiTexture* embeddedTexture = scene->mTextures[textureIndex];
-                if (embeddedTexture) {
+                if (embeddedTexture) 
+                {
                     std::filesystem::path embeddedTexturePath = embeddedTexture->mFilename.C_Str();
-                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) {
+                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) 
+                    {
                         newMaterial.normalTexturePath = baseTexturePath + embeddedTexturePath.filename().string();
                     }
                 }
             }
         }
-        else {
+        else 
+        {
             std::filesystem::path fullTexturePath = m_ModelDirectory;
             fullTexturePath /= texturePath.C_Str();
             newMaterial.normalTexturePath = std::filesystem::absolute(fullTexturePath).string(); // 절대 경로로 변경
         }
+
+
     }
-    else {
+    else 
+    {
         newMaterial.normalTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
     }
 
     // Specular Texture
-    if (material->GetTexture(aiTextureType_SPECULAR, 0, &texturePath) == AI_SUCCESS) {
-        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') {
+    if (material->GetTexture(aiTextureType_SPECULAR, 0, &texturePath) == AI_SUCCESS) 
+    {
+        if (texturePath.length > 0 && texturePath.C_Str()[0] == '*') 
+        {
             int textureIndex = atoi(texturePath.C_Str() + 1);
-            if (textureIndex < scene->mNumTextures) {
+            if (textureIndex < scene->mNumTextures) 
+            {
                 aiTexture* embeddedTexture = scene->mTextures[textureIndex];
-                if (embeddedTexture) {
+                if (embeddedTexture) 
+                {
                     std::filesystem::path embeddedTexturePath = embeddedTexture->mFilename.C_Str();
-                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) {
+                    if (saveEmbeddedTexture(embeddedTexture, baseTexturePath)) 
+                    {
                         newMaterial.specularTexturePath = baseTexturePath + embeddedTexturePath.filename().string();
                     }
                 }
             }
         }
-        else {
+        else 
+        {
             std::filesystem::path fullTexturePath = m_ModelDirectory;
             fullTexturePath /= texturePath.C_Str();
             newMaterial.specularTexturePath = std::filesystem::absolute(fullTexturePath).string(); // 절대 경로로 변경
         }
     }
-    else {
+    else 
+    {
         newMaterial.specularTexturePath = ""; // 텍스처가 없으면 빈 문자열로 설정
     }
 
     m_Materials.push_back(newMaterial);
-    m_Meshes.emplace_back(vertices, indices);
+    m_Meshes.push_back(new Mesh(vertices, indices)); // Mesh 를 동적으로 할당 후 push
+    m_MeshTextures.push_back(meshTexture);
+
 }
 
 void AssimpLoader::ProcessNode(aiNode* node, const aiScene* scene)
@@ -196,7 +245,37 @@ void AssimpLoader::ProcessNode(aiNode* node, const aiScene* scene)
     }
 }
 
-std::vector<Mesh> AssimpLoader::GetMeshes() const
+HRESULT AssimpLoader::CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* filename, ID3D11ShaderResourceView** textureView)
+{
+    HRESULT hr = S_OK;
+    DirectX::ScratchImage image;
+
+    hr = LoadFromWICFile(filename, DirectX::WIC_FLAGS_NONE, nullptr, image);
+    if (FAILED(hr)) {
+        //OutputDebugString(L"Failed to load texture from WIC file: " + std::wstring(filename) + L"\n");
+        return hr;
+    }
+
+    DirectX::TexMetadata metadata = image.GetMetadata();
+
+    DirectX::ScratchImage d3dImage;
+    hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), metadata, DirectX::TEX_FILTER_DEFAULT, 0, d3dImage);
+    if (FAILED(hr)) {
+        //OutputDebugString(L"Failed to generate mipmaps: " + std::wstring(filename) + L"\n");
+        return hr;
+    }
+
+    hr = DirectX::CreateShaderResourceView(device, d3dImage.GetImages(), d3dImage.GetImageCount(), d3dImage.GetMetadata(), textureView);
+
+    if (FAILED(hr)) {
+        //OutputDebugString(L"Failed to create shader resource view: " + std::wstring(filename) + L"\n");
+        return hr;
+    }
+
+    return hr;
+}
+
+std::vector<Mesh*> AssimpLoader::GetMeshes() const
 {
     return m_Meshes;
 }
@@ -204,4 +283,9 @@ std::vector<Mesh> AssimpLoader::GetMeshes() const
 std::vector<Material> AssimpLoader::GetMaterials() const
 {
     return m_Materials;
+}
+
+std::vector<MeshTexture> AssimpLoader::GetMeshTextures() const
+{
+    return m_MeshTextures;
 }

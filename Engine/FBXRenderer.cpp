@@ -14,19 +14,25 @@ FBXRenderer::FBXRenderer(ID3D11Device* device, ID3D11DeviceContext* deviceContex
     Initialize();
 
 }
+
 FBXRenderer::~FBXRenderer()
 {
-    SAFE_RELEASE(m_pVertexBuffer);
     SAFE_RELEASE(m_pVertexShader);
     SAFE_RELEASE(m_pPixelShader);
     SAFE_RELEASE(m_pInputLayout);
-    SAFE_RELEASE(m_pIndexBuffer);
     SAFE_RELEASE(m_pConstantBuffer);
     SAFE_RELEASE(m_pBoolBuffer);
-    SAFE_RELEASE(m_pTextureRV);
-    SAFE_RELEASE(m_pNormalTextureRV);
-    SAFE_RELEASE(m_pSpecularTextureRV);
     SAFE_RELEASE(m_pSamplerLinear);
+    SAFE_RELEASE(m_pVertexBuffer);
+    SAFE_RELEASE(m_pIndexBuffer);
+    //SAFE_RELEASE(m_pTextureRV);
+    //SAFE_RELEASE(m_pNormalTextureRV);
+    //SAFE_RELEASE(m_pSpecularTextureRV);
+}
+
+void FBXRenderer::ReleaseRenderResources()
+{
+    
 }
 
 void FBXRenderer::Initialize()
@@ -87,33 +93,19 @@ void FBXRenderer::Initialize()
     m_World = XMMatrixIdentity();
 }
 
-void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Material>& materials, Vector3 cameraPos)
+void FBXRenderer::Render(const std::vector<Mesh*>& meshes, const std::vector<Material>& materials, Vector3 cameraPos)
 {
-
     if (meshes.empty() || materials.empty()) return;
 
-    // 큐브 회전 행렬
-    XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(
-        XMConvertToRadians(m_CubeRotation.x),
-        XMConvertToRadians(m_CubeRotation.y),
-        XMConvertToRadians(m_CubeRotation.z));
-
-    // 큐브 스케일 행렬
-    XMMATRIX scaleMatrix = XMMatrixScaling(m_CubeScale.x, m_CubeScale.y, m_CubeScale.z);
-
-    m_World = scaleMatrix * rotationMatrix;
-    m_CameraPos = cameraPos;
-
-    // 월드 공간에서의 카메라 위치
     m_CameraPos = cameraPos;
 
     for (size_t i = 0; i < meshes.size(); ++i) {
 
-        const Mesh& mesh = meshes[i];
+        const Mesh* mesh = meshes[i];
         const Material& material = materials[i];
 
-        const std::vector<Vertex>& vertices = mesh.GetVertices();
-        const std::vector<unsigned short>& indices = mesh.GetIndices();
+        const std::vector<Vertex>& vertices = mesh->GetVertices();
+        const std::vector<unsigned short>& indices = mesh->GetIndices();
 
         D3D11_BUFFER_DESC bd = {};
         bd.ByteWidth = sizeof(Vertex) * vertices.size();
@@ -123,6 +115,7 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
 
         D3D11_SUBRESOURCE_DATA vbData = {};
         vbData.pSysMem = vertices.data();
+        SAFE_RELEASE(m_pVertexBuffer);
         HR_T(m_pDevice->CreateBuffer(&bd, &vbData, &m_pVertexBuffer));
 
         // 버텍스 버퍼 바인딩.
@@ -137,79 +130,10 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
         ibd.CPUAccessFlags = 0;
         D3D11_SUBRESOURCE_DATA ibData = {};
         ibData.pSysMem = indices.data();
+        SAFE_RELEASE(m_pIndexBuffer);
         HR_T(m_pDevice->CreateBuffer(&ibd, &ibData, &m_pIndexBuffer));
 
         m_nIndices = indices.size();
-
-        // TODO : Texture Loading 제대로 안되는중
-        // Load the Texture
-        if (!material.diffuseTexturePath.empty())
-        {
-            std::wstring texturePath = StringToWString(material.diffuseTexturePath);
-
-            HRESULT hr = S_OK;
-
-            if (texturePath.rfind(L".dds") != std::wstring::npos)
-                hr = CreateDDSTextureFromFile(m_pDevice, texturePath.c_str(), nullptr, &m_pTextureRV);
-
-            else if (texturePath.rfind(L".png") != std::wstring::npos)
-                hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePath.c_str(), &m_pTextureRV);
-
-            if (FAILED(hr))
-            {
-                // 텍스처 로드 실패 시
-                ID3D11ShaderResourceView* nullSRV = nullptr;
-                m_pDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
-            }
-        }
-        else {
-            ID3D11ShaderResourceView* nullSRV = nullptr;
-            m_pDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
-        }
-
-        // Normal
-        if (!material.normalTexturePath.empty())
-        {
-            std::wstring texturePath = StringToWString(material.normalTexturePath);
-
-            HRESULT hr = S_OK;
-            if (texturePath.rfind(L".dds") != std::wstring::npos)
-                hr = CreateDDSTextureFromFile(m_pDevice, texturePath.c_str(), nullptr, &m_pNormalTextureRV);
-            else if (texturePath.rfind(L".png") != std::wstring::npos)
-                hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePath.c_str(), &m_pNormalTextureRV);
-
-            if (FAILED(hr))
-            {
-                ID3D11ShaderResourceView* nullSRV = nullptr;
-                m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
-            }
-        }
-        else {
-            ID3D11ShaderResourceView* nullSRV = nullptr;
-            m_pDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
-        }
-
-
-        // Specular
-        if (!material.specularTexturePath.empty())
-        {
-            std::wstring texturePath = StringToWString(material.specularTexturePath);
-
-            HRESULT hr = S_OK;
-            if (texturePath.rfind(L".dds") != std::wstring::npos)
-                hr = CreateDDSTextureFromFile(m_pDevice, texturePath.c_str(), nullptr, &m_pSpecularTextureRV);
-            else if (texturePath.rfind(L".png") != std::wstring::npos)
-                hr = CreateTextureFromPng(m_pDevice, m_pDeviceContext, texturePath.c_str(), &m_pSpecularTextureRV);
-            if (FAILED(hr))
-            {
-                ID3D11ShaderResourceView* nullSRV = nullptr;
-                m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);
-            }
-        }
-        else {
-            ID3D11ShaderResourceView* nullSRV = nullptr;
-            m_pDeviceContext->PSSetShaderResources(2, 1, &nullSRV);
-        }
 
         // Render the cube
         m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -222,17 +146,17 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
         m_pDeviceContext->PSSetShader(m_pPixelShader, nullptr, 0);
         m_pDeviceContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
         m_pDeviceContext->PSSetConstantBuffers(1, 1, &m_pBoolBuffer);
-        m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
+        m_pDeviceContext->PSSetShaderResources(0, 1, &m_MeshTextures[i].diffuseTextureRV);
         m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
         // Normal On/Off
         // On/Off 여기서 처리하지 않고 Pixel Shader에서 하는 방식으로 변경
-        m_pDeviceContext->PSSetShaderResources(1, 1, &m_pNormalTextureRV);
+        m_pDeviceContext->PSSetShaderResources(1, 1, &m_MeshTextures[i].normalTextureRV);
 
         // SpecularMap On/Off
         if (m_bSpecularMapEnabled)
         {
-            m_pDeviceContext->PSSetShaderResources(2, 1, &m_pSpecularTextureRV);
+            m_pDeviceContext->PSSetShaderResources(2, 1, &m_MeshTextures[i].specularTextureRV);
         }
         else
         {
@@ -259,40 +183,8 @@ void FBXRenderer::Render(const std::vector<Mesh>& meshes, const std::vector<Mate
         m_pDeviceContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
         m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-        SAFE_RELEASE(m_pVertexBuffer);
-        SAFE_RELEASE(m_pIndexBuffer);
     }
 
-}
-
-HRESULT FBXRenderer::CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* filename, ID3D11ShaderResourceView** textureView)
-{
-    HRESULT hr = S_OK;
-    DirectX::ScratchImage image;
-
-    hr = LoadFromWICFile(filename, DirectX::WIC_FLAGS_NONE, nullptr, image);
-    if (FAILED(hr)) {
-        //OutputDebugString(L"Failed to load texture from WIC file: " + std::wstring(filename) + L"\n");
-        return hr;
-    }
-
-    DirectX::TexMetadata metadata = image.GetMetadata();
-
-    DirectX::ScratchImage d3dImage;
-    hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), metadata, DirectX::TEX_FILTER_DEFAULT, 0, d3dImage);
-    if (FAILED(hr)) {
-        //OutputDebugString(L"Failed to generate mipmaps: " + std::wstring(filename) + L"\n");
-        return hr;
-    }
-
-    hr = DirectX::CreateShaderResourceView(device, d3dImage.GetImages(), d3dImage.GetImageCount(), d3dImage.GetMetadata(), textureView);
-
-    if (FAILED(hr)) {
-        //OutputDebugString(L"Failed to create shader resource view: " + std::wstring(filename) + L"\n");
-        return hr;
-    }
-
-    return hr;
 }
 
 void FBXRenderer::SetView(Matrix view)
@@ -361,4 +253,9 @@ void FBXRenderer::SetUseNormalMap(bool useNormalMap) {
 
 void FBXRenderer::SetSpecularMapEnabled(bool specularMapEnabled) {
     m_bSpecularMapEnabled = specularMapEnabled;
+}
+
+void FBXRenderer::SetMeshTextures(const std::vector<MeshTexture>& meshTextures)
+{
+    m_MeshTextures = meshTextures;
 }
