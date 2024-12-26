@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "AssimpLoader.h"
-#include "..\\Engine\\Logger.h"
 #include <filesystem>
 #include <Directxtk/DDSTextureLoader.h>
 #include <DirectXTex.h>
@@ -64,10 +63,9 @@ bool AssimpLoader::LoadModel(const std::string& filePath)
     return true;
 }
 
-void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
+void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene, Matrix parentTransform)
 {
 
-    // TODO : 여기서 누수
     std::vector<Vertex>* vertices = new std::vector<Vertex>();
     std::vector<unsigned short>* indices = new std::vector<unsigned short>();
 
@@ -224,12 +222,19 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
     }
 
     m_Materials.push_back(newMaterial);
-    m_Meshes.push_back(new Mesh(vertices, indices)); // Mesh 를 동적으로 할당 후 push
     m_MeshTextures.push_back(meshTexture);
+
+    // Get mesh's transform
+    aiMatrix4x4 transform = mesh->Transfor;
+    Matrix matrix = XMMATRIX(transform.a1, transform.b1, transform.c1, transform.d1,
+        transform.a2, transform.b2, transform.c2, transform.d2,
+        transform.a3, transform.b3, transform.c3, transform.d3,
+        transform.a4, transform.b4, transform.c4, transform.d4);
+    m_Meshes.push_back(new Mesh(vertices, indices, matrix * parentTransform));
 
 }
 
-void AssimpLoader::ProcessNode(aiNode* node, const aiScene* scene)
+void AssimpLoader::ProcessNode(aiNode* node, const aiScene* scene, Matrix parentTransform)
 {
     // Process all the node's meshes (if any)
     for (unsigned int i = 0; i < node->mNumMeshes; i++)

@@ -1,5 +1,4 @@
 ﻿#include "FBXLoading.h"
-#include "..\\Engine\\Logger.h"
 #include "..\\Engine\\Helper.h"
 #include <d3dcompiler.h>
 #include <imgui.h>
@@ -11,6 +10,8 @@
 #include <assimp/postprocess.h>
 #include <iostream>
 #include <DirectXTex.h>
+#include "..\Engine\Imguizmo\ImGuizmo.h"
+#include <imgui_internal.h>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment(lib,"d3dcompiler.lib")
@@ -37,14 +38,11 @@ FBXLoading::~FBXLoading()
 {
 	UninitScene();
 	UninitD3D();
-	Logger::shutdown();
 }
 
 bool FBXLoading::Initialize(UINT Width, UINT Height)
 {
 	__super::Initialize(Width, Height);
-
-	Logger::Initialize();
 
 	if (!InitD3D())
 		return false;
@@ -129,13 +127,28 @@ void FBXLoading::Render()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// Render the fbx model
-	m_FBXRenderer->Render(m_AssimpLoader->GetMeshes(), m_AssimpLoader->GetMaterials(), m_ViewDirEvaluated);
-
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+
+	// 여기 ImGuizmo
+	ImGuiIO& io = ImGui::GetIO();
+	ImGuizmo::SetOrthographic(false); // !isPerspective
+	ImGuizmo::SetDrawlist(ImGui::GetCurrentWindow()->DrawList);
+	ImGuizmo::BeginFrame();
+
+	Matrix viewMatrix;
+	Matrix projectionMatrix;
+
+	viewMatrix = m_FBXRenderer->GetView();
+	projectionMatrix = m_FBXRenderer->GetProjection();
+
+	ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, m_ClientWidth, m_ClientHeight);
+	ImGuizmo::Manipulate(*viewMatrix.m, *projectionMatrix.m, ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::LOCAL, *m_ModelMatrix.m);
+
+
 
 	// ImGui 창 시작
 	ImGui::Begin("FBX Model");
@@ -177,6 +190,9 @@ void FBXLoading::Render()
 	m_FBXRenderer->SetMaterialSpecularPower(m_MaterialSpecularPower);
 	m_FBXRenderer->SetUseNormalMap(boolbuffer.useNormalMap);
 	m_FBXRenderer->SetSpecularMapEnabled(m_bSpecularMapEnabled);
+
+	// Render the fbx model
+	m_FBXRenderer->Render(m_AssimpLoader->GetMeshes(), m_AssimpLoader->GetMaterials(), m_ViewDirEvaluated);
 
 	// Present our back buffer to our front buffer
 	m_pSwapChain->Present(0, 0);
@@ -336,6 +352,8 @@ bool FBXLoading::InitScene()
 	// (XM_PIDIV4 : 시야각 45도, 화면 비율, near z, far z 순서)
 	Matrix projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 1000.0f);
 	m_FBXRenderer->SetProjection(projection);
+
+	m_ModelMatrix = XMMatrixIdentity();
 
 	return true;
 }

@@ -15,7 +15,7 @@ public:
     ~AssimpLoader();
     bool saveEmbeddedTexture(const aiTexture* embeddedTexture, const std::string& directory_);
     bool LoadModel(const std::string& filePath);
-    void ProcessNode(aiNode* node, const aiScene* scene);
+    void ProcessNode(aiNode* node, const aiScene* scene, Matrix parentTransform = XMMatrixIdentity());
     std::vector<Mesh*> GetMeshes() const;
     std::vector<Material> GetMaterials() const;
     std::vector<MeshTexture> GetMeshTextures() const;
@@ -31,6 +31,6 @@ private:
 
     std::string m_ModelDirectory;
 
-    void ProcessMesh(aiMesh* mesh, const aiScene* scene);
+    void ProcessMesh(aiMesh* mesh, const aiScene* scene, Matrix parentTransform = XMMatrixIdentity());
     //void LoadTextures(const std::vector<Material>& materials);
 };

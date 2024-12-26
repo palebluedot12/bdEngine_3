@@ -149,14 +149,12 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="Helper.h" />
-    <ClInclude Include="ILogger.h" />
     <ClInclude Include="Imguizmo\GraphEditor.h" />
     <ClInclude Include="Imguizmo\ImCurveEdit.h" />
     <ClInclude Include="Imguizmo\ImGradient.h" />
     <ClInclude Include="Imguizmo\ImGuizmo.h" />
     <ClInclude Include="Imguizmo\ImSequencer.h" />
     <ClInclude Include="Imguizmo\ImZoomSlider.h" />
-    <ClInclude Include="Logger.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -176,7 +174,6 @@
     <ClCompile Include="Imguizmo\ImGradient.cpp" />
     <ClCompile Include="Imguizmo\ImGuizmo.cpp" />
     <ClCompile Include="Imguizmo\ImSequencer.cpp" />
-    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>

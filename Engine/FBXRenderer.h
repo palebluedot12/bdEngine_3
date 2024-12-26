@@ -41,7 +41,9 @@ public:
     void ReleaseRenderResources();
     void Render(const std::vector<Mesh*>& meshes, const std::vector<Material>& materials, Vector3 cameraPos);
     void SetView(Matrix view);
+    Matrix GetView();
     void SetProjection(Matrix projection);
+    Matrix GetProjection();
 
     void SetLightDirection(Vector3 lightDir);
     void SetLightAmbient(Vector4 lightAmbient);

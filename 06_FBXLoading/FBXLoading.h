@@ -58,4 +58,6 @@ private:
 	float m_FrameTime;
 	float m_FPS;
 
+	Matrix m_ModelMatrix;
+
 };

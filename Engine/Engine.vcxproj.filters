@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="소스 파일\Logger">
-      <UniqueIdentifier>{17102eea-23e0-46a5-86d4-b06ea788bc1b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Assimp">
       <UniqueIdentifier>{343fb75e-ae26-43b8-be9f-ae388692a633}</UniqueIdentifier>
     </Filter>
@@ -44,12 +41,6 @@
     </ClInclude>
     <ClInclude Include="Mesh.h">
       <Filter>소스 파일\Assimp</Filter>
-    </ClInclude>
-    <ClInclude Include="ILogger.h">
-      <Filter>소스 파일\Logger</Filter>
-    </ClInclude>
-    <ClInclude Include="Logger.h">
-      <Filter>소스 파일\Logger</Filter>
     </ClInclude>
     <ClInclude Include="AssimpLoader.h">
       <Filter>소스 파일\Assimp</Filter>
@@ -100,9 +91,6 @@
     </ClCompile>
     <ClCompile Include="Mesh.cpp">
       <Filter>소스 파일\Assimp</Filter>
-    </ClCompile>
-    <ClCompile Include="Logger.cpp">
-      <Filter>소스 파일\Logger</Filter>
     </ClCompile>
     <ClCompile Include="AssimpLoader.cpp">
       <Filter>소스 파일\Assimp</Filter>

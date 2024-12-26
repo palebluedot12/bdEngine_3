@@ -192,9 +192,19 @@ void FBXRenderer::SetView(Matrix view)
     m_View = view;
 }
 
+Matrix FBXRenderer::GetView()
+{
+    return m_View;
+}
+
 void FBXRenderer::SetProjection(Matrix projection)
 {
     m_Projection = projection;
+}
+
+Matrix FBXRenderer::GetProjection()
+{
+    return m_Projection;
 }
 
 void FBXRenderer::SetLightDirection(Vector3 lightDir)
