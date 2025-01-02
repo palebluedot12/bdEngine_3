@@ -44,6 +44,7 @@ public:
     Matrix GetView();
     void SetProjection(Matrix projection);
     Matrix GetProjection();
+	void SetWorld(Matrix world);
 
     void SetLightDirection(Vector3 lightDir);
     void SetLightAmbient(Vector4 lightAmbient);

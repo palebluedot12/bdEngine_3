@@ -22,7 +22,7 @@ FBXLoading::FBXLoading(HINSTANCE hInstance)
 	, m_LightAmbient(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_LightDiffuse(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_LightSpecular(1.0f, 1.0f, 1.0f, 1.0f)
-	, m_CameraPos(0.0f, 160.0f, 200.0f)
+	, m_CameraPos(0.0f, 100.0f, 450.0f)
 	, m_CameraDirection(0.0f, 0.0f, -1.0f)
 	, m_CameraMoveSpeed(100.0f)
 	, m_MaterialAmbient(1.0f, 1.0f, 1.0f, 1.0f)
@@ -30,6 +30,10 @@ FBXLoading::FBXLoading(HINSTANCE hInstance)
 	, m_MaterialSpecular(1.0f, 1.0f, 1.0f, 1.0f)
 	, m_MaterialSpecularPower(2000.0f)
 	, m_bSpecularMapEnabled(true)
+	, m_ModelMatrix(XMMatrixIdentity())
+	, m_ModelScale(1.0f, 1.0f, 1.0f)
+	, m_camDistance(300.0f)
+	, m_MouseSensitivity(0.001f)
 {
 
 }
@@ -99,6 +103,22 @@ void FBXLoading::Update()
 	//	XMVectorSet(0, 120, 0, 1),			// 주시점
 	//	XMVectorSet(0, 1, 0, 0));
 
+	 // 마우스 이동처리
+	if (GetKeyState(VK_RBUTTON) & 0x8000) {
+		POINT p;
+		GetCursorPos(&p);
+		ScreenToClient(m_hWnd, &p);
+		int dx = p.x - m_PrevMouseX;
+		int dy = p.y - m_PrevMouseY;
+		// 마우스 감도 적용
+		m_CameraDirection.x += -dx * m_MouseSensitivity;
+		m_CameraDirection.y += -dy * m_MouseSensitivity;
+	}
+	GetCursorPos(&m_MousePos);
+	ScreenToClient(m_hWnd, &m_MousePos);
+	m_PrevMouseX = m_MousePos.x;
+	m_PrevMouseY = m_MousePos.y;
+
 	// 카메라 같이 움직이는 LookTo
 	XMMATRIX view = XMMatrixLookToLH(
 		XMLoadFloat3(&m_CameraPos),
@@ -127,11 +147,15 @@ void FBXLoading::Render()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+	m_FBXRenderer->Render(m_AssimpLoader->GetMeshes(), m_AssimpLoader->GetMaterials(), m_ViewDirEvaluated);
+
 	// ImGui rendering
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
+	// ImGui 창 시작
+	ImGui::Begin("FBX Model");
 
 	// 여기 ImGuizmo
 	ImGuiIO& io = ImGui::GetIO();
@@ -145,13 +169,41 @@ void FBXLoading::Render()
 	viewMatrix = m_FBXRenderer->GetView();
 	projectionMatrix = m_FBXRenderer->GetProjection();
 
+	for (int i = 0; i < m_ModelInstances.size(); ++i)
+	{
+		if (ImGui::RadioButton(("model" + std::to_string(i)).c_str(), m_CurrentGizmoTarget == i))
+			m_CurrentGizmoTarget = i;
+
+		if (i != m_CurrentGizmoTarget)
+			continue;
+
+		float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+		ImGuizmo::DecomposeMatrixToComponents(*m_ModelInstances[i].modelMatrix.m, matrixTranslation, matrixRotation, matrixScale);
+
+		XMMATRIX scaleMatrix = XMMatrixScaling(m_ModelScale.x, m_ModelScale.y, m_ModelScale.z);
+
+		XMMATRIX baseTransform = scaleMatrix;
+		XMFLOAT4X4 baseTransformF;
+		XMStoreFloat4x4(&baseTransformF, baseTransform);
+		memcpy(m_ModelInstances[i].modelMatrix.m, &baseTransformF, sizeof(float) * 16);
+
+		ImGuizmo::Manipulate(*viewMatrix.m, *projectionMatrix.m,
+			ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::LOCAL, *m_ModelInstances[i].modelMatrix.m);
+
+		// Transform 결과 값을 Model Scale에 저장
+		ImGuizmo::DecomposeMatrixToComponents(*m_ModelInstances[i].modelMatrix.m, matrixTranslation, matrixRotation, matrixScale);
+		m_ModelScale = Vector3(matrixScale[0], matrixScale[1], matrixScale[2]);
+
+	}
+
 	ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, m_ClientWidth, m_ClientHeight);
+
+	float viewManipulateRight = io.DisplaySize.x;
+	float viewManipulateTop = 0;
+	ImGuizmo::ViewManipulate((float*)viewMatrix.m, m_camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
+
+	// ImGuizmo 조작
 	ImGuizmo::Manipulate(*viewMatrix.m, *projectionMatrix.m, ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::LOCAL, *m_ModelMatrix.m);
-
-
-
-	// ImGui 창 시작
-	ImGui::Begin("FBX Model");
 
 	// 라이트 조정
 	ImGui::Text("Light Properties");
@@ -191,10 +243,17 @@ void FBXLoading::Render()
 	m_FBXRenderer->SetUseNormalMap(boolbuffer.useNormalMap);
 	m_FBXRenderer->SetSpecularMapEnabled(m_bSpecularMapEnabled);
 
-	// Render the fbx model
-	m_FBXRenderer->Render(m_AssimpLoader->GetMeshes(), m_AssimpLoader->GetMaterials(), m_ViewDirEvaluated);
-
-	// Present our back buffer to our front buffer
+	
+	auto meshes = m_AssimpLoader->GetMeshes();
+	if (!meshes.empty()) // 만약 모델이 있다면, transform 변경
+	{
+		for (auto mesh : meshes) 
+		{
+			Matrix matrix = mesh->GetTransform();
+			mesh->SetTransform(m_ModelMatrix);
+		}
+	}
+		
 	m_pSwapChain->Present(0, 0);
 }
 
@@ -330,13 +389,16 @@ bool FBXLoading::InitScene()
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
 	// Load Model
-	//if (!m_AssimpLoader.LoadModel("../Resource/Character.fbx")) {
+	if (!m_AssimpLoader.LoadModel("../Resource/Character.fbx")) {
+		return false;
+	}
+
+	//if (!m_AssimpLoader->LoadModel("../Resource/zeldaPosed001.fbx")) {
 	//	return false;
 	//}
 
-	if (!m_AssimpLoader->LoadModel("../Resource/zeldaPosed001.fbx")) {
-		return false;
-	}
+	m_ModelInstances.push_back({ "../Resource/zeldaPosed001.fbx", XMMatrixIdentity() });
+	m_ModelInstances.push_back({ "../Resource/Character.fbx", XMMatrixTranslation(200,0,0) });
 
 	m_FBXRenderer->SetMeshTextures(m_AssimpLoader->GetMeshTextures());
 

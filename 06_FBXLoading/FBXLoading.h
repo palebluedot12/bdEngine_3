@@ -3,6 +3,14 @@
 #include "..\\Engine\\GameApp.h"
 #include "..\\Engine\\AssimpLoader.h"
 #include "..\\Engine\\FBXRenderer.h"
+//#include "..\\Engine\\Imguizmo\\ImGuizmo.h"
+
+
+struct ModelInstance
+{
+	std::string filePath;
+	Matrix modelMatrix;
+};
 
 class FBXLoading : public GameApp
 {
@@ -59,5 +67,16 @@ private:
 	float m_FPS;
 
 	Matrix m_ModelMatrix;
+	Vector3 m_ModelScale;
+
+	// 기즈모에서 사용할 변수
+	float m_camDistance;
+	float m_MouseSensitivity;
+	POINT m_MousePos;
+	int m_PrevMouseX = 0;
+	int m_PrevMouseY = 0;
+	std::vector<ModelInstance> m_ModelInstances;
+	int m_CurrentGizmoTarget = -1;
+	//ImGuizmo::OPERATION m_CurrentGizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
 
 };

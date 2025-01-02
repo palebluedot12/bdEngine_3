@@ -25,6 +25,7 @@ public:
     const std::vector<Vertex>& GetVertices() const;
     const std::vector<unsigned short>& GetIndices() const;
     const Matrix GetTransform() const;
+	void SetTransform(Matrix transform);
 
 private:
     std::vector<Vertex>* m_Vertices;

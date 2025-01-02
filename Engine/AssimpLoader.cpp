@@ -58,8 +58,6 @@ bool AssimpLoader::LoadModel(const std::string& filePath)
     }
 
     ProcessNode(scene->mRootNode, scene);
-    //LoadTextures(m_Materials);
-
     return true;
 }
 
@@ -224,29 +222,37 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene, Matrix parent
     m_Materials.push_back(newMaterial);
     m_MeshTextures.push_back(meshTexture);
 
-    // Get mesh's transform
-    aiMatrix4x4 transform = mesh->Transfor;
-    Matrix matrix = XMMATRIX(transform.a1, transform.b1, transform.c1, transform.d1,
-        transform.a2, transform.b2, transform.c2, transform.d2,
-        transform.a3, transform.b3, transform.c3, transform.d3,
-        transform.a4, transform.b4, transform.c4, transform.d4);
-    m_Meshes.push_back(new Mesh(vertices, indices, matrix * parentTransform));
+    //// Get mesh's transform
+    //aiMatrix4x4 transform = mesh->mTrans;
+    //Matrix matrix = XMMATRIX(transform.a1, transform.b1, transform.c1, transform.d1,
+    //    transform.a2, transform.b2, transform.c2, transform.d2,
+    //    transform.a3, transform.b3, transform.c3, transform.d3,
+    //    transform.a4, transform.b4, transform.c4, transform.d4);
+    m_Meshes.push_back(new Mesh(vertices, indices, parentTransform));
 
 }
 
+// node의 행렬을 계산하고 자식 노드에게 해당 행렬을 넘겨준다
 void AssimpLoader::ProcessNode(aiNode* node, const aiScene* scene, Matrix parentTransform)
 {
+    Matrix transform = parentTransform;
+    aiMatrix4x4 nodeTransform = node->mTransformation;
+    transform = XMMatrixMultiply(XMMatrixSet(nodeTransform.a1, nodeTransform.b1, nodeTransform.c1, nodeTransform.d1,
+        nodeTransform.a2, nodeTransform.b2, nodeTransform.c2, nodeTransform.d2,
+        nodeTransform.a3, nodeTransform.b3, nodeTransform.c3, nodeTransform.d3,
+        nodeTransform.a4, nodeTransform.b4, nodeTransform.c4, nodeTransform.d4), transform);
+
     // Process all the node's meshes (if any)
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        ProcessMesh(mesh, scene);
+        ProcessMesh(mesh, scene, transform);
     }
 
     // Then do the same for each of its children
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        ProcessNode(node->mChildren[i], scene);
+        ProcessNode(node->mChildren[i], scene, transform);
     }
 }
 
@@ -257,7 +263,6 @@ HRESULT AssimpLoader::CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceCon
 
     hr = LoadFromWICFile(filename, DirectX::WIC_FLAGS_NONE, nullptr, image);
     if (FAILED(hr)) {
-        //OutputDebugString(L"Failed to load texture from WIC file: " + std::wstring(filename) + L"\n");
         return hr;
     }
 
@@ -266,14 +271,12 @@ HRESULT AssimpLoader::CreateTextureFromPng(ID3D11Device* device, ID3D11DeviceCon
     DirectX::ScratchImage d3dImage;
     hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), metadata, DirectX::TEX_FILTER_DEFAULT, 0, d3dImage);
     if (FAILED(hr)) {
-        //OutputDebugString(L"Failed to generate mipmaps: " + std::wstring(filename) + L"\n");
         return hr;
     }
 
     hr = DirectX::CreateShaderResourceView(device, d3dImage.GetImages(), d3dImage.GetImageCount(), d3dImage.GetMetadata(), textureView);
 
     if (FAILED(hr)) {
-        //OutputDebugString(L"Failed to create shader resource view: " + std::wstring(filename) + L"\n");
         return hr;
     }
 

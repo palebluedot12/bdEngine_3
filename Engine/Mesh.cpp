@@ -22,6 +22,12 @@ const std::vector<unsigned short>& Mesh::GetIndices() const
     return *m_Indices;
 }
 
-const Matrix Mesh::GetTransform() const {
+const Matrix Mesh::GetTransform() const 
+{
     return m_Transform;
+}
+
+void Mesh::SetTransform(Matrix transform)
+{
+	m_Transform = transform;
 }

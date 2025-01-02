@@ -166,7 +166,7 @@ void FBXRenderer::Render(const std::vector<Mesh*>& meshes, const std::vector<Mat
 
         // Update matrix variables and lighting variables
         ConstantBuffer cb1;
-        cb1.mWorld = XMMatrixTranspose(m_World);
+        cb1.mWorld = XMMatrixTranspose(mesh->GetTransform() * m_World);
         cb1.mView = XMMatrixTranspose(m_View);
         cb1.mProjection = XMMatrixTranspose(m_Projection);
         cb1.vLightDir = XMFLOAT4(m_LightDirection.x, m_LightDirection.y, m_LightDirection.z, 1.0f);
@@ -205,6 +205,11 @@ void FBXRenderer::SetProjection(Matrix projection)
 Matrix FBXRenderer::GetProjection()
 {
     return m_Projection;
+}
+
+void FBXRenderer::SetWorld(Matrix world)
+{
+	m_World = world;
 }
 
 void FBXRenderer::SetLightDirection(Vector3 lightDir)
@@ -269,3 +274,4 @@ void FBXRenderer::SetMeshTextures(const std::vector<MeshTexture>& meshTextures)
 {
     m_MeshTextures = meshTextures;
 }
+
