@@ -45,7 +45,7 @@ bool AssimpLoader::saveEmbeddedTexture(const aiTexture* embeddedTexture, const s
     return true;
 }
 
-bool AssimpLoader::LoadModel(const std::string& filePath)
+bool AssimpLoader::LoadModel(const std::string& filePath, Matrix initialTransform)
 {
     Assimp::Importer importer;
 
@@ -57,7 +57,7 @@ bool AssimpLoader::LoadModel(const std::string& filePath)
         return false;
     }
 
-    ProcessNode(scene->mRootNode, scene);
+    ProcessNode(scene->mRootNode, scene, initialTransform);
     return true;
 }
 
@@ -221,13 +221,6 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene, Matrix parent
 
     m_Materials.push_back(newMaterial);
     m_MeshTextures.push_back(meshTexture);
-
-    //// Get mesh's transform
-    //aiMatrix4x4 transform = mesh->mTrans;
-    //Matrix matrix = XMMATRIX(transform.a1, transform.b1, transform.c1, transform.d1,
-    //    transform.a2, transform.b2, transform.c2, transform.d2,
-    //    transform.a3, transform.b3, transform.c3, transform.d3,
-    //    transform.a4, transform.b4, transform.c4, transform.d4);
     m_Meshes.push_back(new Mesh(vertices, indices, parentTransform));
 
 }

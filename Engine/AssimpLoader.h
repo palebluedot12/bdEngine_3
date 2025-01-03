@@ -14,7 +14,7 @@ public:
     AssimpLoader(ID3D11Device* device, ID3D11DeviceContext* deviceContext);
     ~AssimpLoader();
     bool saveEmbeddedTexture(const aiTexture* embeddedTexture, const std::string& directory_);
-    bool LoadModel(const std::string& filePath);
+    bool LoadModel(const std::string& filePath, Matrix initialTransform = XMMatrixIdentity());
     void ProcessNode(aiNode* node, const aiScene* scene, Matrix parentTransform = XMMatrixIdentity());
     std::vector<Mesh*> GetMeshes() const;
     std::vector<Material> GetMaterials() const;

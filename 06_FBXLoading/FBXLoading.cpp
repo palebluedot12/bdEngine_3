@@ -388,20 +388,27 @@ bool FBXLoading::InitScene()
 	m_AssimpLoader = new AssimpLoader(m_pDevice, m_pDeviceContext);
 	m_FBXRenderer = new FBXRenderer(m_pDevice, m_pDeviceContext, m_ClientWidth, m_ClientHeight);
 
-	// Load Model
-	if (!m_AssimpLoader.LoadModel("../Resource/Character.fbx")) {
-		return false;
-	}
+	//// Load Model
+	//if (!m_AssimpLoader->LoadModel("../Resource/Character.fbx")) {
+	//	return false;
+	//}
 
 	//if (!m_AssimpLoader->LoadModel("../Resource/zeldaPosed001.fbx")) {
 	//	return false;
 	//}
 
 	m_ModelInstances.push_back({ "../Resource/zeldaPosed001.fbx", XMMatrixIdentity() });
-	m_ModelInstances.push_back({ "../Resource/Character.fbx", XMMatrixTranslation(200,0,0) });
+	m_ModelInstances.push_back({ "../Resource/Character.fbx", XMMatrixTranslation(500,0,0) });
+
+	// Load Model 할 때 행렬을 같이 넘겨줘서 위치를 조정할 수 있게 함.
+	for (auto& modelInstance : m_ModelInstances) {
+		if (!m_AssimpLoader->LoadModel(modelInstance.filePath, modelInstance.modelMatrix)) 
+		{
+			return false;
+		}
+	}
 
 	m_FBXRenderer->SetMeshTextures(m_AssimpLoader->GetMeshTextures());
-
 
 	// 카메라 뷰행렬 초기값설정
 	XMVECTOR Eye = XMVectorSet(0.0f, 150.0f, -100.0f, 0.0f);
